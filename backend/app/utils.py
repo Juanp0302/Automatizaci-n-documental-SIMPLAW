@@ -127,20 +127,47 @@ def extract_variables_from_docx(file_path: str) -> list[str]:
 
 def convert_to_pdf(docx_path: str) -> str:
     """
-    Converts a .docx file to .pdf using docx2pdf (requires MS Word).
+    Converts a .docx file to .pdf.
+    - Windows/macOS: uses docx2pdf (requires MS Word).
+    - Linux: uses libreoffice (headless).
     Returns the path to the generated PDF.
     """
+    import sys
+    import subprocess
+    import platform
+    import os
+    
+    pdf_path = docx_path.replace(".docx", ".pdf")
+    
     try:
-        from docx2pdf import convert
-        import os
-        
-        pdf_path = docx_path.replace(".docx", ".pdf")
-        
-        # If PDF already exists, we might want to overwrite or just return it
-        # For now, let's regenerate to be safe or check timestamp (skipping complexity)
-        
-        print(f"Converting {docx_path} to PDF...")
-        convert(docx_path, pdf_path)
+        if platform.system() == "Linux":
+            # Linux: Use LibreOffice
+            # libreoffice --headless --convert-to pdf <file> --outdir <dir>
+            output_dir = os.path.dirname(pdf_path)
+            cmd = [
+                "libreoffice",
+                "--headless",
+                "--convert-to",
+                "pdf",
+                docx_path,
+                "--outdir",
+                output_dir
+            ]
+            print(f"Converting to PDF using LibreOffice: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                print(f"LibreOffice failed: {result.stderr}")
+                raise Exception(f"LibreOffice conversion failed: {result.stderr}")
+                
+            # LibreOffice might change the filename case or something, but usually it keeps it.
+            # It blindly replaces extension.
+            
+        else:
+            # Windows/Mac: Use docx2pdf (requires MS Word installed)
+            from docx2pdf import convert
+            print(f"Converting {docx_path} to PDF using docx2pdf...")
+            convert(docx_path, pdf_path)
         
         if os.path.exists(pdf_path):
             return pdf_path

@@ -1,0 +1,67 @@
+.user-modal {
+    max-width: 500px;
+    height: auto;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Prevent double scrollbars */
+}
+
+/* Modal header is already styled generally, but ensure it doesn't shrink */
+.user-modal .modal-header {
+    flex-shrink: 0;
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid #eef2f6;
+}
+
+/* Make the form take up available space and handle scrolling */
+.user-modal form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.user-modal .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Adjust form-actions to be a sticky footer inside the flex container */
+.form-actions {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background-color: #fff;
+    border-top: 1px solid #eef2f6;
+    margin-top: 0;
+    /* Reset margin */
+}
+
+.checkbox-group {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #1e293b;
+}
+
+.help-text {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 0.25rem;
+    margin-left: 1.5rem;
+}

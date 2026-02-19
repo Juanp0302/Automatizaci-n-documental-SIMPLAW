@@ -1,0 +1,32 @@
+.dynamic-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-select {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    transition: all 0.2s;
+    /* Remove default arrow to avoid double arrows if index.css also adds one, 
+       but index.css adds it via background-image. 
+       Let's ensure we play nice with index.css .form-select */
+}
+
+.form-select:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}

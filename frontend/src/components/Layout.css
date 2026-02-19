@@ -1,0 +1,294 @@
+/* ========================================
+   Layout Styles
+   ======================================== */
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ========================================
+   Sidebar
+   ======================================== */
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    /* Remove border-right as requested/implied by solid color */
+    border-right: none;
+    z-index: 100;
+
+    /* FORCE RED BACKGROUND */
+    background-color: #932E20 !important;
+    background: #932E20 !important;
+
+    /* FORCE BEIGE TEXT */
+    color: #F2E9D8;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-header {
+    padding: var(--space-6);
+    border-bottom: 1px solid rgba(242, 233, 216, 0.1);
+    /* Beige with low opacity */
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.logo-icon {
+    font-size: 1.75rem;
+}
+
+.logo-text {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: #F2E9D8 !important;
+    background: none;
+    -webkit-text-fill-color: initial;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+
+    /* INACTIVE STATE: Beige transparency */
+    color: rgba(242, 233, 216, 0.7) !important;
+
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #F2E9D8 !important;
+}
+
+.nav-item.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: #F2E9D8 !important;
+}
+
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 24px;
+    background: #F2E9D8;
+    border-radius: 0 4px 4px 0;
+}
+
+.nav-icon {
+    font-size: 1.125rem;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebar-footer {
+    padding: var(--space-4);
+    border-top: 1px solid rgba(242, 233, 216, 0.1);
+}
+
+.user-profile-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    margin-bottom: var(--space-2);
+    cursor: pointer;
+}
+
+.user-profile-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.user-profile-link.active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #F2E9D8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #932E20;
+    /* Red text on beige avatar */
+    flex-shrink: 0;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.user-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #F2E9D8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-email {
+    font-size: 0.7rem;
+    color: rgba(242, 233, 216, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* FIX LOGOUT BUTTON VISIBILITY */
+.logout-btn {
+    color: rgba(242, 233, 216, 0.9) !important;
+    /* Beige instead of danger/red */
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+/* ========================================
+   Main Content
+   ======================================== */
+
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: var(--space-8);
+    min-height: 100vh;
+    animation: fadeIn var(--transition-slow) ease-out;
+}
+
+/* ========================================
+   Loading Screen
+   ======================================== */
+
+.loading-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-primary);
+}
+
+/* ========================================
+   Page Header
+   ======================================== */
+
+.page-header {
+    margin-bottom: var(--space-8);
+}
+
+.page-title {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.page-description {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-lg);
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform var(--transition-base);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: var(--space-4);
+    }
+}
+
+/* ========================================
+   Branding Styles
+   ======================================== */
+
+.logo-image {
+    max-width: 100%;
+    height: auto;
+    max-height: 48px;
+    object-fit: contain;
+    display: block;
+}
+
+.branding-footer {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid rgba(242, 233, 216, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 0.65rem;
+    color: rgba(242, 233, 216, 0.7);
+}
+
+.branding-text {
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+.simplaw-link {
+    color: #F2E9D8 !important;
+    /* Force beige */
+    text-decoration: none;
+    font-weight: 600;
+    transition: color var(--transition-fast);
+}
+
+.simplaw-link:hover {
+    color: white !important;
+    text-decoration: underline;
+}

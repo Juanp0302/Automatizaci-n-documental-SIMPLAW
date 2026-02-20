@@ -12,8 +12,17 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
+            set -e
             cd ~/automatizacion/herramienta
+            
+            # Safely stow any local modifications (like the tracked sqlite database)
+            git stash || true
+            
+            # Pull latest code
             git pull origin main
+            
+            # Restore the database and other local changes
+            git stash pop || true
             
             # Ensure sql_app.db exists as a file, preventing docker-compose from creating it as a directory
             if [ -d "backend/sql_app.db" ]; then

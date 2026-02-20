@@ -14,15 +14,18 @@ jobs:
           script: |
             set -e
             cd ~/automatizacion/herramienta
+            # Backup the database safely in case git pulls delete it
+            cp backend/sql_app.db backend/sql_app.db.bak || true
             
-            # Safely stow any local modifications (like the tracked sqlite database)
-            git stash || true
+            # Force abort any stuck git merges from old deployments
+            git merge --abort || true
+            git reset --hard origin/main || git reset --hard HEAD
             
             # Pull latest code
             git pull origin main
             
-            # Restore the database and other local changes
-            git stash pop || true
+            # Restore the database backup if git accidentally deleted it
+            mv backend/sql_app.db.bak backend/sql_app.db || true
             
             # Ensure sql_app.db exists as a file, preventing docker-compose from creating it as a directory
             if [ -d "backend/sql_app.db" ]; then

@@ -1,0 +1,41 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy repository contents via scp
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USERNAME }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          port: 22
+          source: "."
+          target: "~/app"
+          rm: true
+
+      - name: Execute Docker Compose on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USERNAME }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          port: 22
+          script: |
+            cd ~/app
+            # Optional: ensure permissions are ok for volumes if needed
+            mkdir -p generated_docs templates
+            
+            # Restart docker containers
+            docker-compose down
+            docker-compose up -d --build

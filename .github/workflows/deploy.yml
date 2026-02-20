@@ -8,9 +8,9 @@ jobs:
     steps:
       - uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.EC2_HOST }}
+          host: ${{ secrets.AWS_HOST }}
           username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key: ${{ secrets.AWS_SSH_KEY }}
           script: |
             cd ~/automatizacion/herramienta
             git pull origin main

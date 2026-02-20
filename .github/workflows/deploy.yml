@@ -14,4 +14,13 @@ jobs:
           script: |
             cd ~/automatizacion/herramienta
             git pull origin main
+            
+            # Ensure sql_app.db exists as a file, preventing docker-compose from creating it as a directory
+            if [ -d "backend/sql_app.db" ]; then
+              rm -rf backend/sql_app.db
+              touch backend/sql_app.db
+            elif [ ! -f "backend/sql_app.db" ]; then
+              touch backend/sql_app.db
+            fi
+            
             docker compose up -d --build

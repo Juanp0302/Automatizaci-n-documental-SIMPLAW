@@ -44,6 +44,23 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def startup_event():
     logger.info(f"Database URL: {settings.DATABASE_URL}")
+    try:
+        from app.db.session import engine, SessionLocal
+        from app.db.base import Base
+        from app.db.init_db import init_db
+        
+        # Ensure tables exist
+        Base.metadata.create_all(bind=engine)
+        
+        # Initialize DB with admin user
+        db = SessionLocal()
+        init_db(db)
+        db.close()
+        logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.error(f"Error initializing DB: {e}")
+        logger.error(traceback.format_exc())
+        
     logger.info("Application startup complete (custom log)")
 
 

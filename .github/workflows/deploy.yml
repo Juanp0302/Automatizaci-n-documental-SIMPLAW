@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 name: Deploy to AWS EC2
 
 on:
@@ -39,3 +40,22 @@ jobs:
             # Restart docker containers
             docker-compose down
             docker-compose up -d --build
+=======
+name: Deploy to EC2
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/automatizacion/herramienta
+            git pull origin main
+            docker compose up -d --build
+>>>>>>> ef5df0cb91ae58037bbf2f5f11ec24348cac4373

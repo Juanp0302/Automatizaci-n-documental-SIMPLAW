@@ -3,11 +3,13 @@ import axios from 'axios'
 // Determine the API URL based on the environment
 let API_URL;
 if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith('/')) {
-    // If it's a relative path (like in production), use the current origin + path
+    // If it's a relative path, use the current origin + path
     API_URL = `${window.location.origin}${import.meta.env.VITE_API_URL}`;
+} else if (import.meta.env.VITE_API_URL) {
+    API_URL = import.meta.env.VITE_API_URL;
 } else {
-    // Otherwise rely on the environment variable as-is (e.g., localhost direct URL)
-    API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+    // CRITICAL FIX: Default to relative path /api/v1 in production if env vars are missing during docker build
+    API_URL = '/api/v1';
 }
 
 export const authAPI = {

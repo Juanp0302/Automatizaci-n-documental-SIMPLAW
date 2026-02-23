@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: automatizacion_backend
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - ./backend/generated_docs:/app/generated_docs
       - ./backend/templates:/app/templates

@@ -171,28 +171,57 @@ def create_document(
 
 def convert_to_pdf(docx_path: str, pdf_path: str):
     """
-    Convert a docx file to pdf using docx2pdf.
-    Requires Microsoft Word to be installed.
+    Convert a docx file to pdf using LibreOffice (Linux) or docx2pdf (Windows).
     """
-    try:
-        import pythoncom
-        pythoncom.CoInitialize()
-        from docx2pdf import convert
-        convert(docx_path, pdf_path)
-    except ImportError:
-        logger.error("docx2pdf module not found.")
-        raise HTTPException(status_code=500, detail="PDF conversion service not available (module missing)")
-    except Exception as e:
-        logger.error(f"Error converting to PDF: {e}")
-        # Check if it might be due to missing Word
-        if "Word" in str(e) or "COM" in str(e):
-             raise HTTPException(status_code=500, detail="PDF conversion failed: Microsoft Word may not be installed or accessible.")
-        raise HTTPException(status_code=500, detail=f"PDF conversion failed: {str(e)}")
-    finally:
+    import platform
+    import subprocess
+    import sys
+    
+    if platform.system() == "Linux":
+        # Check for LibreOffice
+        output_dir = os.path.dirname(pdf_path)
+        cmd = [
+            "libreoffice",
+            "--headless",
+            "--convert-to",
+            "pdf",
+            docx_path,
+            "--outdir",
+            output_dir
+        ]
+        logger.info(f"Converting to PDF using LibreOffice: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            logger.error(f"LibreOffice failed: {result.stderr}")
+            raise HTTPException(status_code=500, detail=f"LibreOffice conversion failed: {result.stderr}")
+            
+        # Verify and rename if LibreOffice created a file with a different name but same base docx name
+        expected_output = os.path.join(output_dir, os.path.basename(docx_path).replace(".docx", ".pdf"))
+        if os.path.exists(expected_output) and expected_output != pdf_path:
+            import shutil
+            shutil.move(expected_output, pdf_path)
+        elif not os.path.exists(pdf_path):
+             raise HTTPException(status_code=500, detail="LibreOffice conversion completed but PDF was not found at expected location.")
+             
+    else:
         try:
-            pythoncom.CoUninitialize()
-        except:
-            pass
+            import pythoncom
+            pythoncom.CoInitialize()
+            from docx2pdf import convert
+            convert(docx_path, pdf_path)
+        except ImportError:
+            logger.error("docx2pdf module not found.")
+            raise HTTPException(status_code=500, detail="PDF conversion service not available (module missing)")
+        except Exception as e:
+            logger.error(f"Error converting to PDF: {e}")
+            if "Word" in str(e) or "COM" in str(e):
+                 raise HTTPException(status_code=500, detail="PDF conversion failed: Microsoft Word may not be installed or accessible.")
+            raise HTTPException(status_code=500, detail=f"PDF conversion failed: {str(e)}")
+        finally:
+            try:
+                pythoncom.CoUninitialize()
+            except:
+                pass
 
 
 @router.get("/{id}/download")

@@ -37,3 +37,10 @@ jobs:
             
             docker compose down --remove-orphans
             docker compose up -d --build --force-recreate
+            
+            # Wait for container startup and capture logs if it crashes
+            sleep 10
+            echo "========== BACKEND LOGS =========="
+            docker compose logs backend --tail 200
+            echo "========== FRONTEND LOGS =========="
+            docker compose logs frontend --tail 50

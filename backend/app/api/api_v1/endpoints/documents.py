@@ -15,6 +15,113 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def expand_numbered_elements(context: dict, template_schema) -> dict:
+    """
+    Expands numbered element groups from the context dict.
+
+    Given a schema entry of type 'numbered_elements' with name 'servicios'
+    and items list in context['servicios_items'], this function:
+      - Adds flat vars: servicios_1_nombre, servicios_1_precio, ...
+      - Clears unused slots up to the max defined in the Word template
+      - Adds: lista_servicios, total_servicios, precio_total_servicios
+
+    Returns the enriched context dict.
+    """
+    import json
+
+    if not template_schema:
+        return context
+
+    # Parse schema if it's a JSON string
+    if isinstance(template_schema, str):
+        try:
+            schema = json.loads(template_schema)
+        except Exception:
+            return context
+    else:
+        schema = template_schema
+
+    result = dict(context)
+
+    for field in schema:
+        if not isinstance(field, dict):
+            continue
+        if field.get('type') != 'numbered_elements':
+            continue
+
+        group_name = field.get('name', '')
+        if not group_name:
+            continue
+
+        sub_fields = field.get('fields', [])
+        items_key = f'{group_name}_items'
+        items = result.pop(items_key, []) or []
+
+        # Ensure items is a list of dicts
+        if isinstance(items, str):
+            try:
+                items = json.loads(items)
+            except Exception:
+                items = []
+
+        # Determine max element index used in Word template
+        # We'll pre-fill up to max(len(items), any existing keys in context)
+        max_index = len(items)
+        # Also check context for existing keys to know upper bound to zero-fill
+        for key in list(result.keys()):
+            if key.startswith(f'{group_name}_'):
+                try:
+                    idx = int(key.split('_')[len(group_name.split('_'))])
+                    if idx > max_index:
+                        max_index = idx
+                except (ValueError, IndexError):
+                    pass
+
+        # Expand provided items into flat vars
+        names_list = []
+        total_precio = 0.0
+        has_precio = any(sf.get('name') == 'precio' for sf in sub_fields)
+
+        for i, item in enumerate(items, start=1):
+            for sf in sub_fields:
+                sf_name = sf.get('name', '')
+                var_key = f'{group_name}_{i}_{sf_name}'
+                result[var_key] = item.get(sf_name, '')
+
+            # Collect name for lista_
+            nombre_key = next((sf.get('name') for sf in sub_fields if 'nombre' in sf.get('name', '')), None)
+            if nombre_key:
+                names_list.append(str(item.get(nombre_key, '')))
+
+            # Sum precio
+            if has_precio:
+                try:
+                    raw = str(item.get('precio', '0')).replace('$', '').replace(',', '').replace('.', '').strip()
+                    total_precio += float(raw)
+                except (ValueError, TypeError):
+                    pass
+
+        # Zero-fill unused slots (up to a reasonable cap of 20)
+        cap = max(max_index, 20)
+        for i in range(len(items) + 1, cap + 1):
+            for sf in sub_fields:
+                sf_name = sf.get('name', '')
+                var_key = f'{group_name}_{i}_{sf_name}'
+                result.setdefault(var_key, '')
+
+        # Summary variables
+        label = field.get('label', group_name)
+        if names_list:
+            result[f'lista_{group_name}'] = f"Los {label.lower()} incluidos son: {', '.join(names_list)}"
+        else:
+            result[f'lista_{group_name}'] = ''
+        result[f'total_{group_name}'] = str(len(items))
+        if has_precio:
+            result[f'precio_total_{group_name}'] = f'{total_precio:,.2f}'
+
+    return result
+
+
 @router.get("/", response_model=List[schemas.Document])
 def read_documents(
     db: Session = Depends(deps.get_db),
@@ -133,6 +240,16 @@ def create_document(
         
         # Context setup
         context = document_in.variables or {}
+        
+        # Expand numbered elements groups before rendering
+        import json as _json
+        template_schema = template.variables_schema
+        if isinstance(template_schema, str):
+            try:
+                template_schema = _json.loads(template_schema)
+            except Exception:
+                template_schema = None
+        context = expand_numbered_elements(context, template_schema)
         
         # Add basic metadata if not present
         if "title" not in context:
@@ -342,7 +459,17 @@ def preview_document(
         
         # Context setup
         context = document_in.variables or {}
-        
+
+        # Expand numbered elements groups before rendering
+        import json as _json
+        template_schema = template.variables_schema
+        if isinstance(template_schema, str):
+            try:
+                template_schema = _json.loads(template_schema)
+            except Exception:
+                template_schema = None
+        context = expand_numbered_elements(context, template_schema)
+
         # Add basic metadata if not present
         if "title" not in context:
             context["title"] = document_in.title

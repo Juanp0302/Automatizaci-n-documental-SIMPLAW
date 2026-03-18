@@ -1,6 +1,15 @@
-
 import re
+import os
+import json
 from docx import Document
+from openai import OpenAI
+
+def get_openai_client():
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY no configurado en las variables de entorno.")
+    return OpenAI(api_key=api_key)
+
 
 def iter_block_items(parent):
     """
@@ -124,6 +133,341 @@ def extract_variables_from_docx(file_path: str) -> list[str]:
 
     # Remove duplicates while preserving order
     return list(dict.fromkeys(matches_list))
+
+def extract_text_from_pdf(file_path: str) -> str:
+    """Extrae todo el texto de un archivo .pdf para análisis de IA."""
+    try:
+        import fitz  # PyMuPDF
+        doc = fitz.open(file_path)
+        text_parts = []
+        for page_num, page in enumerate(doc, 1):
+            page_text = page.get_text()
+            if page_text.strip():
+                text_parts.append(f"--- PÁGINA {page_num} ---")
+                text_parts.append(page_text)
+        doc.close()
+        return "\n".join(text_parts)
+    except ImportError:
+        print("PyMuPDF no instalado. Instala con: pip install pymupdf")
+        return ""
+    except Exception as e:
+        print(f"Error extracting text from PDF: {e}")
+        return ""
+
+def extract_text_from_file(file_path: str) -> str:
+    """Extrae texto de un .docx o .pdf según la extensión del archivo."""
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".pdf":
+        return extract_text_from_pdf(file_path)
+    else:
+        return extract_text_from_docx(file_path)
+
+def extract_text_from_docx(file_path: str) -> str:
+    """Extrae todo el texto y tablas de un archivo .docx para análisis de IA."""
+    try:
+        doc = Document(file_path)
+        text = []
+        for para in doc.paragraphs:
+            if para.text.strip():
+                text.append(para.text)
+                
+        for table in doc.tables:
+            text.append("--- INICIO TABLA ---")
+            for row in table.rows:
+                row_data = [cell.text.strip().replace('\n', ' ') for cell in row.cells]
+                text.append(" | ".join(row_data))
+            text.append("--- FIN TABLA ---")
+            
+        return "\n".join(text)
+    except Exception as e:
+        print(f"Error extracting text for AI analysis: {e}")
+        return ""
+
+def generate_template_proposal(doc_text: str, user_prompt: str = None) -> dict:
+    """Genera una propuesta de variables usando OpenAI."""
+    extra_instructions = ""
+    if user_prompt and user_prompt.strip():
+        extra_instructions = f"\n\nINSTRUCCIONES DEL USUARIO (MÁXIMA PRIORIDAD - SIGUE ESTAS INSTRUCCIONES ANTE TODO):\n{user_prompt}\n"
+
+    # Si el documento está vacío pero hay prompt del usuario, intentar de todos modos
+    effective_text = doc_text.strip() if doc_text else ""
+    if not effective_text and not (user_prompt and user_prompt.strip()):
+        return {"simple": [], "groups": []}
+    if not effective_text:
+        effective_text = "[Documento sin texto extraíble - usar instrucciones del usuario para generar variables]"
+
+    prompt = f"""Eres un experto en automatización de documentos legales y comerciales en español.
+Tu tarea es analizar un documento y definir su ESTRUCTURA DE VARIABLES (el formulario de preguntas que otra persona llenará después para generar el documento final).
+
+SUPERPROMPT - REGLAS FUNDAMENTALES (NO NEGOCIABLES):
+1. **OBJETIVO DE LA HERRAMIENTA**: Hacer automatizaciones a partir de plantillas. Un usuario genera una plantilla base, y luego otro usuario llena "espacios" respondiendo preguntas para generar el documento con información nueva.
+2. **ESQUELETO VS DATOS**: Identifica estrictamente qué hace parte del "esqueleto" (texto estático que siempre va a estar) y qué información debe cambiar en cada documento nuevo a partir de tu conocimiento del tipo de documento.
+3. **PREGUNTAS NECESARIAS**: Para cada campo dinámico, debes formular la pregunta que le harías al usuario final en el campo "label". Sé descriptivo.
+4. **LISTAS Y GRUPOS DINÁMICOS**: Si el documento describe elementos que pueden variar en cantidad (ej. 1, 2 o más servicios ofrecidos, cuotas de pago, items a entregar), DEBES crear un grupo en la lista "groups". Por ejemplo, un servicio tendrá adentro campos como descripción, actividades que lo componen y valor.
+5. **INFERENCIA CONTEXTUAL**: En respuestas a PQR cambia identificación, objeto, si es afirmativo o no (puedes sugerir options tipo select), razones, etc. Parametriza TODO lo que típicamente cambiaría.
+6. SIEMPRE propones variables. Si el texto tiene datos reales parametrizalos. Si está casi vacío, créalas de cero basándote en la solicitud.{extra_instructions}
+
+Ejemplo de respuesta válida estricta en JSON puro sin caracteres extra:
+{{"simple": [{{"name": "nombre_cliente", "label": "¿Cuál es el nombre completo del cliente/usuario?", "type": "text"}}, {{"name": "decide_aprobar", "label": "¿La respuesta a la solicitud es afirmativa?", "type": "select", "options": ["Sí::si", "No::no"]}}, {{"name": "razones_decision", "label": "¿Cuáles son las razones de la decisión?", "type": "textarea"}}], "groups": [{{"name": "servicios", "label": "Servicios a prestar", "fields": [{{"name": "nombre_servicio", "label": "¿Nombre del servicio a prestar?", "type": "text"}}, {{"name": "actividades", "label": "¿Cuáles son las actividades que componen este servicio?", "type": "textarea"}}, {{"name": "valor_servicio", "label": "¿Valor de este servicio?", "type": "text"}}]}}]}}
+
+Texto del documento base:
+{effective_text[:8000]}
+"""
+
+    try:
+        client = get_openai_client()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Eres un asistente de automatización JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1
+        )
+        
+        content = response.choices[0].message.content.strip()
+        # Clean markdown codeblocks if AI happens to return them despite instructions
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+            
+        return json.loads(content.strip())
+    except Exception as e:
+        print(f"Error en OpenAI API o parseando JSON: {e}")
+        return {"simple": [], "groups": []}
+
+
+def review_document_with_ai(docx_path: str) -> dict:
+    """
+    Revisa un documento .docx generado con IA para corregir errores de redacción
+    y asegurar consistencia de datos (montos, nombres, fechas).
+
+    Estrategia:
+    1. Extrae el texto completo del .docx.
+    2. Envía a GPT-4o-mini pidiendo correcciones como pares JSON: [{original, corrected}].
+    3. Aplica cada par como find/replace en párrafos y celdas de tabla (conserva formato).
+    4. Retorna {"corrections": N, "details": [...]} con el número de correcciones aplicadas.
+    """
+    try:
+        # --- 1. Extraer texto completo para el análisis ---
+        doc_text = extract_text_from_docx(docx_path)
+        if not doc_text.strip():
+            return {"corrections": 0, "details": [], "summary": "Documento vacío, sin revisión."}
+
+        # --- 2. Obtener correcciones de la IA ---
+        prompt = f"""Eres un asistente especializado en revisión de documentos legales y contractuales en español.
+Se te proporciona el texto completo de un documento ya diligenciado con datos reales de un cliente.
+
+Tu tarea es:
+1. Detectar errores de redacción: concordancia de género y número, tildes, puntuación, imprecisión de lenguaje formal.
+2. Detectar inconsistencias de datos: si un mismo concepto (ej. monto de honorarios, nombre de parte, fecha) aparece con valores diferentes en distintas partes del documento, señala la inconsistencia y propón el valor más apropiado (generalmente el primero que aparece o el más referenciado).
+3. NO cambiar valores de variables que el usuario ingresó intencionalmente como distintos. Solo corregir cuando la inconsistencia parece un error.
+4. NO alterar cláusulas legales sustantivas ni el significado de los acuerdos.
+5. NO recalcular ni alterar sumas matemáticas o totales (ej. precios totales, sumatorias). Los documentos pueden listar un total correcto sin mostrar el desglose completo en el texto.
+6. Si el documento está correcto, devuelve un array vacío [].
+
+Responde ÚNICAMENTE con un array JSON válido de objetos con esta estructura EXACTA:
+[
+  {{"original": "texto exacto a reemplazar (como aparece en el documento)", "corrected": "texto corregido"}},
+  ...
+]
+
+IMPORTANTE:
+- "original" debe ser una cadena de texto EXACTA que aparezca en el documento (máximo 150 caracteres).
+- No incluyas correcciones que no estén respaldadas por el texto del documento.
+- Prioriza las inconsistencias de datos sobre los errores ortográficos menores.
+- Si no hay nada que corregir, responde exactamente: []
+
+Texto del documento:
+{doc_text[:8000]}
+"""
+        client = get_openai_client()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Eres un revisor de documentos legales. Solo devuelves JSON válido."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=2000
+        )
+
+        content = response.choices[0].message.content.strip()
+        # Limpiar markdown si el modelo lo incluye
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+
+        corrections = json.loads(content.strip())
+        if not isinstance(corrections, list):
+            corrections = []
+
+    except Exception as e:
+        print(f"Error en review_document_with_ai (AI step): {e}")
+        return {"corrections": 0, "details": [], "summary": "Error en revisión IA (API)."}
+
+    if not corrections:
+        return {"corrections": 0, "details": [], "summary": "Revisado por IA — sin correcciones necesarias."}
+
+    # --- 3. Aplicar correcciones al .docx (find/replace preservando formato) ---
+    applied = []
+    try:
+        from docx import Document as DocxDocument
+
+        doc = DocxDocument(docx_path)
+
+        def replace_in_paragraph(paragraph, original, corrected):
+            """Reemplaza texto en un párrafo preservando el formato de runs."""
+            full_text = paragraph.text
+            if original not in full_text:
+                return False
+            # Reconstruir los runs para aplicar el reemplazo
+            # Estrategia: concatenar texto de runs, detectar posición, redistribuir
+            for run in paragraph.runs:
+                if original in run.text:
+                    run.text = run.text.replace(original, corrected, 1)
+                    return True
+            # Si el original cruza múltiples runs, combinar en el primero y limpiar los demás
+            combined = ""
+            run_texts = [r.text for r in paragraph.runs]
+            combined = "".join(run_texts)
+            if original in combined:
+                new_combined = combined.replace(original, corrected, 1)
+                if paragraph.runs:
+                    paragraph.runs[0].text = new_combined
+                    for r in paragraph.runs[1:]:
+                        r.text = ""
+                return True
+            return False
+
+        def replace_in_table(table, original, corrected):
+            count = 0
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        if replace_in_paragraph(para, original, corrected):
+                            count += 1
+            return count
+
+        for correction in corrections:
+            original = correction.get("original", "")
+            corrected = correction.get("corrected", "")
+            if not original or not corrected or original == corrected:
+                continue
+
+            replaced = False
+            # Párrafos del cuerpo principal
+            for para in doc.paragraphs:
+                if replace_in_paragraph(para, original, corrected):
+                    replaced = True
+                    break  # Aplicar solo la primera ocurrencia por par
+
+            # Tablas del cuerpo principal
+            if not replaced:
+                for table in doc.tables:
+                    if replace_in_table(table, original, corrected) > 0:
+                        replaced = True
+                        break
+
+            if replaced:
+                applied.append({"original": original, "corrected": corrected})
+
+        if applied:
+            doc.save(docx_path)
+
+    except Exception as e:
+        print(f"Error en review_document_with_ai (apply step): {e}")
+        import traceback
+        traceback.print_exc()
+        # Si falla al aplicar, retornamos las correcciones sugeridas de todos modos
+        n = len(corrections)
+        return {"corrections": 0, "details": [], "summary": f"Revisión IA completada pero no se pudo aplicar al archivo ({str(e)})."}
+
+    n = len(applied)
+    if n == 0:
+        summary = "Revisado por IA — sin correcciones aplicadas."
+    elif n == 1:
+        summary = "1 corrección de IA aplicada."
+    else:
+        summary = f"{n} correcciones de IA aplicadas."
+
+    return {"corrections": n, "details": applied, "summary": summary}
+
+
+def detect_variable_groups(variables: list) -> dict:
+    """
+    Auto-detecta grupos de variables numeradas.
+
+    Patrones soportados:
+      - {grupo}_{N}_{campo}  → ej: pago_1_monto, pago_2_monto
+      - {grupo}_{N}          → ej: servicio_1, servicio_2
+
+    Retorna:
+      {
+        "simple": ["cliente", "fecha"],
+        "groups": [{"name": "pago", "label": "Pagos", "fields": ["monto", "concepto"]}]
+      }
+    """
+    import re
+
+    # Pattern: group_number_field  OR  group_number
+    pattern_full = re.compile(r'^([a-z][a-z0-9]*(?:_[a-z][a-z0-9]*)*)_(\d+)_([a-z][a-z0-9_]*)$')
+    pattern_simple = re.compile(r'^([a-z][a-z0-9]*(?:_[a-z][a-z0-9]*)*)_(\d+)$')
+
+    groups_map = {}   # name -> set of fields
+    group_order = []  # preserve first-seen order
+    simple = []
+
+    for var in variables:
+        m = pattern_full.match(var)
+        if m:
+            group_name, _, field_name = m.group(1), m.group(2), m.group(3)
+            if group_name not in groups_map:
+                groups_map[group_name] = []
+                group_order.append(group_name)
+            if field_name not in groups_map[group_name]:
+                groups_map[group_name].append(field_name)
+            continue
+
+        m2 = pattern_simple.match(var)
+        if m2:
+            group_name = m2.group(1)
+            if group_name not in groups_map:
+                groups_map[group_name] = []
+                group_order.append(group_name)
+            continue
+
+        simple.append(var)
+
+    def to_label(name: str) -> str:
+        """Convierte 'pago' → 'Pagos', 'servicio' → 'Servicios'"""
+        word = name.replace('_', ' ').strip().capitalize()
+        # simple pluralización en español
+        if word.endswith('o'):
+            return word + 's'
+        if word.endswith(('a', 'e')):
+            return word + 's'
+        return word + 'es'
+
+    def field_label(name: str) -> str:
+        return name.replace('_', ' ').capitalize()
+
+    groups = [
+        {
+            "name": g,
+            "label": to_label(g),
+            "fields": [{"name": f, "label": field_label(f)} for f in groups_map[g]]
+        }
+        for g in group_order
+    ]
+
+    return {"simple": simple, "groups": groups}
 
 def convert_to_pdf(docx_path: str) -> str:
     """

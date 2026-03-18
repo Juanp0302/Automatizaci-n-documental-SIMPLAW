@@ -17,6 +17,9 @@ class Document(Base):
     # Versioning
     version = Column(Integer, default=1)
     parent_id = Column(Integer, ForeignKey("documents.id"), nullable=True)
+
+    # AI Review
+    ai_review_summary = Column(String, nullable=True)
     
     # Relationships
     # Self-referential relationship (Adjacency List)

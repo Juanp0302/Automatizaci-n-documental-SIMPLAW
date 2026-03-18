@@ -11,6 +11,9 @@ export const templatesAPI = {
     update: (id, data) => api.put(`/templates/${id}/`, data),
     delete: (id) => api.delete(`/templates/${id}/`),
     getVariables: (id) => api.get(`/templates/${id}/variables/`),
+    getVariableGroups: (id) => api.get(`/templates/${id}/variable-groups`),
+    analyzeAI: (id, userPrompt) => api.post(`/templates/${id}/analyze-ai`, { user_prompt: userPrompt }),
+    download: (id) => api.get(`/templates/${id}/download`, { responseType: 'blob' }),
     downloadBatchTemplate: (id) => api.get(`/templates/${id}/batch-template`, { responseType: 'blob' }),
     batchGenerate: (id, formData) => api.post(`/templates/${id}/batch-generate`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }

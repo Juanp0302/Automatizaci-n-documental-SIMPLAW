@@ -24,11 +24,12 @@ class DocumentInDBBase(DocumentBase):
     created_at: Optional[datetime] = None
     version: int = 1
     parent_id: Optional[int] = None
-
+    ai_review_summary: Optional[str] = None
 
     class Config:
         orm_mode = True 
         from_attributes = True
+
 
 class Document(DocumentInDBBase):
     pass

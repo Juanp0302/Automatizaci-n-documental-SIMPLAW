@@ -97,6 +97,7 @@ def expand_numbered_elements(context: dict, template_schema) -> dict:
             if has_precio:
                 try:
                     raw = str(item.get('precio', '0')).replace('$', '').replace(',', '').replace('.', '').strip()
+                    logger.error(f'ADDING AL TOTAL {group_name} item={item} raw={raw}')
                     total_precio += float(raw)
                 except (ValueError, TypeError):
                     pass
@@ -249,6 +250,23 @@ def create_document(
                 template_schema = _json.loads(template_schema)
             except Exception:
                 template_schema = None
+                
+        if not template_schema and template.file_path.endswith('.docx'):
+            try:
+                from app.utils import extract_variables_from_docx, detect_variable_groups
+                raw_vars = extract_variables_from_docx(template.file_path)
+                detected = detect_variable_groups(raw_vars)
+                template_schema = []
+                for g in detected.get('groups', []):
+                    template_schema.append({
+                        "type": "numbered_elements",
+                        "name": g.get("name"),
+                        "label": g.get("label"),
+                        "fields": g.get("fields", [])
+                    })
+            except Exception as e:
+                logger.warning(f"Error auto-detecting schema for template {template.id}: {e}")
+                
         context = expand_numbered_elements(context, template_schema)
         
         # Add basic metadata if not present
@@ -263,25 +281,37 @@ def create_document(
         doc.render(context)
 
         doc.save(file_path)
-        
+
     except Exception as e:
         logger.error(f"Error generating document: {e}")
         raise HTTPException(status_code=500, detail=f"Error generating document: {str(e)}")
 
-    
+    # --- AI Review (non-blocking) ---
+    ai_review_summary = None
+    try:
+        from app.utils import review_document_with_ai
+        review_result = review_document_with_ai(file_path)
+        ai_review_summary = review_result.get("summary", "Revisado por IA.")
+        logger.info(f"AI review completed: {ai_review_summary}")
+    except Exception as ai_err:
+        logger.warning(f"AI review failed (non-fatal): {ai_err}")
+        ai_review_summary = "Revisión IA no disponible."
+
     db_obj = models.Document(
         title=document_in.title,
         template_id=document_in.template_id,
         user_id=current_user.id,
         generated_file_path=file_path,
         version=version,
-        parent_id=document_in.parent_id
+        parent_id=document_in.parent_id,
+        ai_review_summary=ai_review_summary
     )
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
     
     return db_obj
+
 
 
 
@@ -468,6 +498,23 @@ def preview_document(
                 template_schema = _json.loads(template_schema)
             except Exception:
                 template_schema = None
+                
+        if not template_schema and template.file_path.endswith('.docx'):
+            try:
+                from app.utils import extract_variables_from_docx, detect_variable_groups
+                raw_vars = extract_variables_from_docx(template.file_path)
+                detected = detect_variable_groups(raw_vars)
+                template_schema = []
+                for g in detected.get('groups', []):
+                    template_schema.append({
+                        "type": "numbered_elements",
+                        "name": g.get("name"),
+                        "label": g.get("label"),
+                        "fields": g.get("fields", [])
+                    })
+            except Exception as e:
+                logger.warning(f"Error auto-detecting schema for template {template.id}: {e}")
+                
         context = expand_numbered_elements(context, template_schema)
 
         # Add basic metadata if not present

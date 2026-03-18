@@ -82,9 +82,16 @@ function Templates() {
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0]
+            const ext = file.name.split('.').pop().toLowerCase()
+            if (!['docx', 'pdf'].includes(ext)) {
+                toast.error('Solo se aceptan archivos .docx o .pdf')
+                e.target.value = ''
+                return
+            }
             setNewTemplate(prev => ({
                 ...prev,
-                file: e.target.files[0]
+                file: file
             }))
         }
     }
@@ -232,16 +239,16 @@ function Templates() {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Archivo Word (.docx)</label>
+                                <label className="form-label">Archivo de Plantilla</label>
                                 <div className="file-input-wrapper">
                                     <input
                                         type="file"
-                                        accept=".docx"
+                                        accept=".docx,.pdf"
                                         className="form-input"
                                         onChange={handleFileChange}
                                         required
                                     />
-                                    <small className="form-help">Solo archivos .docx</small>
+                                    <small className="form-help">📄 Archivos Word (.docx) o PDF (.pdf)</small>
                                 </div>
                             </div>
 
@@ -365,6 +372,35 @@ function Templates() {
                                     style={{ marginRight: 'auto' }}
                                 >
                                     📄 Usar plantilla
+                                </button>
+                                <button
+                                    className="btn-icon btn-secondary"
+                                    onClick={async () => {
+                                        try {
+                                            const response = await templatesAPI.download(template.id)
+                                            const url = window.URL.createObjectURL(new Blob([response.data]))
+                                            const link = document.createElement('a')
+                                            link.href = url
+                                            let filename = `${template.title}.docx`
+                                            const contentDisposition = response.headers['content-disposition']
+                                            if (contentDisposition) {
+                                                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+                                                if (filenameMatch && filenameMatch.length === 2) {
+                                                    filename = filenameMatch[1]
+                                                }
+                                            }
+                                            link.setAttribute('download', filename)
+                                            document.body.appendChild(link)
+                                            link.click()
+                                            link.remove()
+                                        } catch (e) {
+                                            console.error(e)
+                                            toast.error("Error al descargar la plantilla")
+                                        }
+                                    }}
+                                    title="Descargar Plantilla Original"
+                                >
+                                    ⬇️
                                 </button>
                                 <button
                                     className="btn-icon btn-secondary"

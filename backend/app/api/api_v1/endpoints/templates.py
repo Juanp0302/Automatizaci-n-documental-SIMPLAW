@@ -41,9 +41,17 @@ def create_template(
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Create new template.
+    Create new template. Accepts .docx and .pdf files.
     """
-    file_location = os.path.join(settings.TEMPLATES_DIR, file.filename)
+    filename = file.filename or ""
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in (".docx", ".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Formato no válido. Solo se aceptan archivos .docx y .pdf."
+        )
+
+    file_location = os.path.join(settings.TEMPLATES_DIR, filename)
     with open(file_location, "wb+") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
@@ -95,6 +103,55 @@ def delete_template(
     return template
 
 
+@router.get("/{id}/download")
+def download_template(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Download a template file.
+    """
+    template = crud.template.get(db, id=id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+        
+    if not current_user.is_superuser and (template.owner_id != current_user.id):
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+        
+    file_path = template.file_path
+    if not os.path.isabs(file_path):
+        file_path = os.path.join(settings.BASE_DIR, file_path)
+        
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+        
+    try:
+        with open(file_path, "rb") as f:
+            file_content = f.read()
+            
+        filename = os.path.basename(file_path)
+        
+        from fastapi.responses import Response
+        media_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        if filename.endswith('.pdf'):
+            media_type = 'application/pdf'
+            
+        return Response(
+            content=file_content,
+            media_type=media_type,
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Length': str(len(file_content))
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+
+
+
 @router.get("/{id}/variables", response_model=List[str])
 def get_template_variables(
     *,
@@ -103,21 +160,85 @@ def get_template_variables(
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get variables from a template.
+    Get variables from a template. PDFs don't have {{variables}}, returns empty list.
     """
     template = crud.template.get(db, id=id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
     
     if not os.path.exists(template.file_path):
-        # Return empty list if file is missing, or raise error?
-        # Let's return empty to avoid breaking UI, but log it
         print(f"Warning: Template file not found at {template.file_path}")
+        return []
+
+    # PDFs don't support {{variable}} syntax
+    ext = os.path.splitext(template.file_path)[1].lower()
+    if ext == ".pdf":
         return []
 
     from app.utils import extract_variables_from_docx
     variables = extract_variables_from_docx(template.file_path)
     return variables
+
+
+@router.get("/{id}/variable-groups")
+def get_template_variable_groups(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Detecta automáticamente grupos de variables numeradas en el template.
+    PDFs no soportan {{variables}}, retorna estructura vacía.
+    Retorna: { "simple": [...], "groups": [{"name":"pago","label":"Pagos","fields":[...]}] }
+    """
+    template = crud.template.get(db, id=id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    if not os.path.exists(template.file_path):
+        return {"simple": [], "groups": []}
+
+    # PDFs don't support {{variable}} syntax
+    ext = os.path.splitext(template.file_path)[1].lower()
+    if ext == ".pdf":
+        return {"simple": [], "groups": []}
+
+    from app.utils import extract_variables_from_docx, detect_variable_groups
+    variables = extract_variables_from_docx(template.file_path)
+    return detect_variable_groups(variables)
+
+
+from pydantic import BaseModel
+
+class AnalyzeAIRequest(BaseModel):
+    user_prompt: Optional[str] = None
+
+@router.post("/{id}/analyze-ai")
+def analyze_template_ai(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    request: AnalyzeAIRequest,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Analiza un template usando IA para extraer sus variables de forma inteligente.
+    Soporta tanto .docx como .pdf.
+    Retorna: { "simple": [...], "groups": [{"name":"pago","label":"Pagos","fields":[...]}] }
+    """
+    template = crud.template.get(db, id=id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    if not os.path.exists(template.file_path):
+        return {"simple": [], "groups": []}
+
+    from app.utils import extract_text_from_file, generate_template_proposal
+    text = extract_text_from_file(template.file_path)
+    analysis = generate_template_proposal(text, user_prompt=request.user_prompt)
+    return analysis
+
 
 
 @router.put("/{id}", response_model=schemas.Template)

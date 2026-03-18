@@ -136,20 +136,27 @@ taskkill /F /IM uvicorn.exe /IM python.exe
 ### Baja Prioridad
 - [ ] Multi-idioma
 
+### 7. AI over-correcting dynamic list totals
+**Causa:** El prompt de IA corregía errores matemáticos cuando percibía descuadres (ej. `precio_total` > suma de items mostrados), lo cual rompía pruebas y plantillas que no listaban el 100% de los items en el cuerpo del texto. 
+**Solución Aplicada:** Se ajustó el prompt en `backend/app/utils.py` para añadir la regla "NO recalcular ni alterar sumas matemáticas o totales".
+
 ---
 
 ## 📝 Estado Actual de la Sesión
-**Fecha:** 19/02/2026 (Sesión Reanudada - 10:20)
+**Fecha:** 11/03/2026 (Sesión de implementación)
 
 ### Resumen
-Se ha completado el flujo de reanudación del proyecto.
-- **Backend:** Activo en puerto **8001** (Verificado).
-- **Frontend:** Activo en puerto **3000** (Reiniciado vía cmd).
-- **Verificación:** Servidores escuchando correctamente.
+Se implementó la feature completa de **Elementos Numerados Dinámicos**:
+- **Backend:** `expand_numbered_elements()` ya estaba en `create_document`. Se aplicó también en `preview_document` (fix de bug).
+- **Frontend:** Nuevo componente `NumberedElementsInput.jsx` + `NumberedElementsInput.css`.
+- **TemplateConfig.jsx:** Botón 🔢 "Elementos Numerados" + editor inline de grupos (nombre, etiqueta, sub-campos, preview de variables).
+- **NewDocument.jsx:** Sección "🔢 Elementos de Lista" que renderiza `NumberedElementsInput` por cada grupo definido en el schema.
+- **CSS:** Añadidos `numbered-groups-section`, `numbered-group-card`, `subfield-row`, etc. en `TemplateConfig.css` y `NewDocument.css`.
 
 ### Próximos Pasos
-- **Desarrollo:** Proceder con tareas pendientes (Tests automatizados, Versionado).
-- **Frontend:** Verificar la UI en http://localhost:3000.
+- Verificar manualmente el flujo completo: crear grupo → guardar → generar documento → verificar variables expandidas en el .docx
+- Ajustar el Word template para usar `{{grupo_1_nombre}}`, `{{lista_grupo}}`, `{{total_grupo}}` etc.
+
 
 ---
 

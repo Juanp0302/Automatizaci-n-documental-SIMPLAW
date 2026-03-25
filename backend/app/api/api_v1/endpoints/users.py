@@ -70,6 +70,54 @@ def update_user_me(
     return user
 
 
+@router.get("/statistics", response_model=Any)
+def get_statistics(
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_superuser),
+) -> Any:
+    """
+    Get app statistics: documents per user and documents per template.
+    """
+    from sqlalchemy import func
+
+    # 1. Documents by User
+    users_stats = db.query(
+        models.User.id,
+        models.User.full_name,
+        models.User.email,
+        func.count(models.Document.id).label('document_count')
+    ).outerjoin(models.Document, models.User.id == models.Document.user_id).group_by(models.User.id).all()
+
+    by_user = [
+        {
+            "user_id": r.id,
+            "full_name": r.full_name,
+            "email": r.email,
+            "document_count": r.document_count
+        } for r in users_stats
+    ]
+
+    # 2. Documents by Template
+    template_stats = db.query(
+        models.Template.id,
+        models.Template.title,
+        func.count(models.Document.id).label('document_count')
+    ).outerjoin(models.Document, models.Template.id == models.Document.template_id).group_by(models.Template.id).all()
+
+    by_template = [
+        {
+            "template_id": r.id,
+            "title": r.title,
+            "document_count": r.document_count
+        } for r in template_stats
+    ]
+
+    return {
+        "by_user": by_user,
+        "by_template": by_template
+    }
+
+
 @router.get("/me", response_model=schemas.User)
 def read_user_me(
     db: Session = Depends(deps.get_db),

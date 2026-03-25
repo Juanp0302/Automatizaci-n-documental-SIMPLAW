@@ -8,4 +8,5 @@ export const usersAPI = {
     update: (id, data) => api.put(`/users/${id}`, data),
     delete: (id) => api.delete(`/users/${id}`),
     getMe: () => api.get('/users/me'),
+    getStatistics: () => api.get('/users/statistics'),
 }

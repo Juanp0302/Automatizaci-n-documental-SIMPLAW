@@ -27,7 +27,7 @@ class CRUDTemplate(CRUDBase[Template, TemplateCreate, TemplateUpdate]):
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
-            update_data = obj_in.dict(exclude_unset=True)
+            update_data = obj_in.model_dump(exclude_unset=True)
             
         if update_data.get("variables_schema") is not None and not isinstance(update_data["variables_schema"], str):
              import json

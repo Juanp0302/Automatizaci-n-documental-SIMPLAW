@@ -48,9 +48,19 @@ def startup_event():
         from app.db.session import engine, SessionLocal
         from app.db.base import Base
         from app.db.init_db import init_db
+        from sqlalchemy import text
         
         # Ensure tables exist
         Base.metadata.create_all(bind=engine)
+        
+        # Safe schema migration for production SQLite DBs
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE documents ADD COLUMN ai_review_summary VARCHAR"))
+            logger.info("Successfully added ai_review_summary column to documents table.")
+        except Exception as e:
+            # Column likely already exists or other error, ignore
+            pass
         
         # Initialize DB with admin user
         db = SessionLocal()

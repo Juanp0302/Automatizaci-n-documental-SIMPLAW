@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class DocumentBase(BaseModel):
     title: Optional[str] = None
@@ -26,9 +26,7 @@ class DocumentInDBBase(DocumentBase):
     parent_id: Optional[int] = None
     ai_review_summary: Optional[str] = None
 
-    class Config:
-        orm_mode = True 
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Document(DocumentInDBBase):

@@ -53,10 +53,16 @@ function Layout() {
                     </NavLink>
 
                     {user?.is_superuser && (
-                        <NavLink to="/users" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                            <span className="nav-icon">👥</span>
-                            <span>Usuarios</span>
-                        </NavLink>
+                        <>
+                            <NavLink to="/users" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <span className="nav-icon">👥</span>
+                                <span>Usuarios</span>
+                            </NavLink>
+                            <NavLink to="/statistics" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <span className="nav-icon">📊</span>
+                                <span>Estadísticas</span>
+                            </NavLink>
+                        </>
                     )}
                 </nav>
 

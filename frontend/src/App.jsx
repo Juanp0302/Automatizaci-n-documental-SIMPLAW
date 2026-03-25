@@ -9,6 +9,7 @@ import Documents from './pages/Documents'
 import NewDocument from './pages/NewDocument'
 import Profile from './pages/Profile'
 import Users from './pages/Users'
+import Statistics from './pages/Statistics'
 import TemplateConfig from './pages/TemplateConfig'
 
 // Components
@@ -34,6 +35,7 @@ function App() {
             <Route element={<ProtectedRoute adminOnly={true} />}>
                 <Route element={<Layout />}>
                     <Route path="/users" element={<Users />} />
+                    <Route path="/statistics" element={<Statistics />} />
                 </Route>
             </Route>
 

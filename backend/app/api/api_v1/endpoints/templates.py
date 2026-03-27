@@ -225,19 +225,33 @@ def analyze_template_ai(
     """
     Analiza un template usando IA para extraer sus variables de forma inteligente.
     Soporta tanto .docx como .pdf.
-    Retorna: { "simple": [...], "groups": [{"name":"pago","label":"Pagos","fields":[...]}] }
+    Retorna: { "simple": [...], "groups": [{...}] }
     """
+    import os as _os
+    if not _os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(
+            status_code=503,
+            detail="El servicio de IA no está disponible: OPENAI_API_KEY no configurada en el servidor."
+        )
     template = crud.template.get(db, id=id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
 
     if not os.path.exists(template.file_path):
-        return {"simple": [], "groups": []}
+        raise HTTPException(
+            status_code=404,
+            detail="El archivo de plantilla no se encontró en el servidor. Por favor sube la plantilla de nuevo."
+        )
 
-    from app.utils import extract_text_from_file, generate_template_proposal
-    text = extract_text_from_file(template.file_path)
-    analysis = generate_template_proposal(text, user_prompt=request.user_prompt)
-    return analysis
+    try:
+        from app.utils import extract_text_from_file, generate_template_proposal
+        text = extract_text_from_file(template.file_path)
+        analysis = generate_template_proposal(text, user_prompt=request.user_prompt)
+        return analysis
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al analizar con IA: {str(e)}")
 
 
 

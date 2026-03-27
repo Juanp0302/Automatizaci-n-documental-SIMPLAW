@@ -168,7 +168,8 @@ function TemplateConfig() {
             }
         } catch (err) {
             console.error('Error AI details:', err)
-            toast.error('Error al analizar con IA')
+            const serverMsg = err?.response?.data?.detail
+            toast.error(serverMsg || 'Error al analizar con IA')
         } finally {
             setAnalyzingAI(false)
         }

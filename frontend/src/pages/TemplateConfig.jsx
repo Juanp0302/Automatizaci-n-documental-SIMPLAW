@@ -175,6 +175,46 @@ function TemplateConfig() {
         }
     }
 
+    const autoConditionWithAI = async (promptOverride) => {
+        if (!window.confirm("ATENCIÓN: Esto modificará el archivo Word original inyectando etiquetas de programación para ocultar o mostrar bloques de texto según las variables creadas. ¿Estás seguro de continuar?")) return
+        
+        const userPrompt = promptOverride !== undefined ? promptOverride : aiPromptText
+        setShowAIPanel(false)
+        setAnalyzingAI(true)
+        try {
+            const res = await templatesAPI.autoConditionAI(id, userPrompt)
+            const { conditional_blocks } = res.data
+            
+            if (!conditional_blocks || conditional_blocks.length === 0) {
+                toast.warning('La IA no detectó bloques opcionales claros para separar en este documento.')
+                return
+            }
+
+            const newSchema = [...schema]
+            conditional_blocks.forEach(block => {
+                // Ensure no duplicate
+                if (!newSchema.find(s => s.name === block.variable_name)) {
+                    newSchema.push({
+                        name: block.variable_name,
+                        label: block.label || `¿Desea incluir la opción ${block.variable_name}?`,
+                        type: 'select',
+                        options: ['Sí::Sí', 'No::No']
+                    })
+                }
+            })
+            
+            setSchema(newSchema)
+            toast.success(`🪄 ${conditional_blocks.length} bloques opcionales inyectados en el Word! Guarda para confirmar.`)
+            
+        } catch (err) {
+            console.error('Error AutoCondition:', err)
+            const serverMsg = err?.response?.data?.detail
+            toast.error(serverMsg || 'Error al auto-condicionar con IA')
+        } finally {
+            setAnalyzingAI(false)
+        }
+    }
+
     const updateField = (index, key, value) => {
         const newSchema = [...schema]
         newSchema[index] = { ...newSchema[index], [key]: value }
@@ -261,12 +301,21 @@ function TemplateConfig() {
                                 onClick={() => setShowAIPanel(false)}
                             >Cancelar</button>
                             <button
+                                className="btn btn-secondary"
+                                style={{ borderColor: '#f59e0b', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.05)' }}
+                                onClick={() => autoConditionWithAI()}
+                                title="Encuentra bloques opcionales y modifica el Word internamente"
+                                disabled={analyzingAI}
+                            >
+                                {analyzingAI ? '...' : '🪄 Auto-Condicionar (Alpha)'}
+                            </button>
+                            <button
                                 className="btn btn-primary"
                                 style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
                                 onClick={() => analyzeWithAI(aiPromptText)}
                                 disabled={analyzingAI}
                             >
-                                {analyzingAI ? '✨ Analizando...' : '✨ Analizar con IA'}
+                                {analyzingAI ? '✨ Analizando...' : '✨ Analizar Variables'}
                             </button>
                         </div>
                     </div>

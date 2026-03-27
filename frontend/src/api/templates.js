@@ -13,6 +13,7 @@ export const templatesAPI = {
     getVariables: (id) => api.get(`/templates/${id}/variables/`),
     getVariableGroups: (id) => api.get(`/templates/${id}/variable-groups`),
     analyzeAI: (id, userPrompt) => api.post(`/templates/${id}/analyze-ai`, { user_prompt: userPrompt }),
+    autoConditionAI: (id, userPrompt) => api.post(`/templates/${id}/auto-condition-ai`, { user_prompt: userPrompt }),
     download: (id) => api.get(`/templates/${id}/download`, { responseType: 'blob' }),
     downloadBatchTemplate: (id) => api.get(`/templates/${id}/batch-template`, { responseType: 'blob' }),
     batchGenerate: (id, formData) => api.post(`/templates/${id}/batch-generate`, formData, {

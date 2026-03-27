@@ -253,6 +253,56 @@ def analyze_template_ai(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error al analizar con IA: {str(e)}")
 
+class AutoConditionAIRequest(BaseModel):
+    user_prompt: Optional[str] = None
+
+@router.post("/{id}/auto-condition-ai")
+def auto_condition_template_ai(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    request: AutoConditionAIRequest,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    import os as _os
+    if not _os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(
+            status_code=503,
+            detail="El servicio de IA no está disponible: OPENAI_API_KEY no configurada en el servidor."
+        )
+    template = crud.template.get(db, id=id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    if not os.path.exists(template.file_path):
+        raise HTTPException(status_code=404, detail="El archivo no se encontró.")
+        
+    if not template.file_path.endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Esta función experimental solo soporta archivos .docx")
+
+    try:
+        from app.utils import extract_indexed_paragraphs, generate_conditional_blocks_proposal, inject_conditions_to_docx
+        
+        # 1. Extraer párrafos con su ID
+        indexed_text = extract_indexed_paragraphs(template.file_path)
+        if indexed_text == "[]":
+            return {"conditional_blocks": []}
+            
+        # 2. IA agrupa y devuelve bloques
+        blocks = generate_conditional_blocks_proposal(indexed_text, user_prompt=request.user_prompt)
+        
+        # 3. Inyectar modificaciones en el Word
+        if blocks:
+            inject_conditions_to_docx(template.file_path, blocks)
+            
+        # Reflejar el cambio actualizando la fecha para cache o control
+        # Y regresar los bloques para que el frontend los agregue a la configuración
+        return {"conditional_blocks": blocks}
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error en inyección condicional: {str(e)}")
 
 
 @router.put("/{id}", response_model=schemas.Template)

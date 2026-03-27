@@ -415,7 +415,7 @@ function NewDocument() {
                                 id="title"
                                 type="text"
                                 className="form-input"
-                                placeholder="Ej: Propuesta de servicios - María Cristina Ortega"
+                                placeholder="Ej: Propuesta de servicios - Cliente A"
                                 value={title}
                                 onChange={e => setTitle(e.target.value)}
                                 required

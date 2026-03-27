@@ -8,7 +8,17 @@ class Settings:
     PROJECT_VERSION: str = "0.1.0"
     
     API_V1_STR: str = "/api/v1"
-    BACKEND_CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8000", "http://localhost:3001", "http://localhost:8001", "http://localhost:8002"]
+    BACKEND_CORS_ORIGINS: list = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+        "http://localhost:3001",
+        "http://localhost:8001",
+        "http://localhost:8002",
+        "https://www.simplaw.co",
+        "https://simplaw.co",
+        "http://www.simplaw.co",
+    ]
     
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8

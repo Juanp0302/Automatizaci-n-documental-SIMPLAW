@@ -2,7 +2,7 @@ import api from './client'
 
 export const templatesAPI = {
     getAll: () => api.get('/templates/'),
-    getById: (id) => api.get(`/templates/${id}/`),
+    getById: (id) => api.get(`/templates/${id}`),
     create: (data) => api.post('/templates/', data, {
         headers: {
             'Content-Type': 'multipart/form-data',

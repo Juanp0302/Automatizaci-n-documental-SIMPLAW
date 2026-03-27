@@ -522,14 +522,13 @@ def convert_to_pdf(docx_path: str) -> str:
         print(f"Error converting to PDF: {e}")
         return None
 
+
 def extract_indexed_paragraphs(file_path: str) -> str:
-    """Extrae párrafos con su índice para análisis de condicionales."""
+    """Extrae párrafos numerados por índice para análisis de condicionales."""
     try:
         doc = Document(file_path)
         indexed = []
         for i, p in enumerate(doc.paragraphs):
-            # Solo enviar párrafos con suficiente texto para ahorrar tokens y facilitar la agrupación.
-            # Los saltos de línea vacíos se ignoran en el análisis pero mantienen su índice real.
             if len(p.text.strip()) > 5:
                 indexed.append({"id": i, "text": p.text.strip()})
         return json.dumps(indexed, ensure_ascii=False)
@@ -537,43 +536,49 @@ def extract_indexed_paragraphs(file_path: str) -> str:
         print(f"Error extract_indexed_paragraphs: {e}")
         return "[]"
 
+
 def generate_conditional_blocks_proposal(indexed_text_json: str, user_prompt: str = None) -> list:
     """Genera propuesta de bloques condicionales usando OpenAI."""
-    extra = f"\nInstrucciones del usuario: {user_prompt}" if user_prompt else ""
-    prompt = f"""Eres un asistente legal experto en estructuración de documentos.
-Analiza el siguiente documento (representado como una lista JSON de párrafos con "id" y "text").
-Identifica grupos lógicos de párrafos que representen servicios opcionales, cláusulas específicas, tarifas, honorarios o secciones que el usuario podría querer incluir o excluir dinámicamente en el contrato final.
+    if user_prompt and user_prompt.strip():
+        extra_instructions = (
+            f"\n\nINSTRUCCIONES DEL USUARIO (MÁXIMA PRIORIDAD — "
+            f"guíate principalmente por esto para identificar los bloques):\n{user_prompt}"
+        )
+    else:
+        extra_instructions = (
+            "\n\nSin instrucciones específicas: identifica de forma general secciones, "
+            "cláusulas, artículos, etapas, servicios, productos, condiciones o cualquier "
+            "otro bloque lógico autónomo que un usuario podría querer activar o desactivar."
+        )
 
-Tu tarea es devolver un JSON con la lista de bloques condicionales detectados.
-Reglas:
-1. 'variable_name' debe ser en código (letras minúsculas, sin acentos ni espacios, unidos por guiones bajos), ej: 'ofrecer_servicio_x'.
-2. 'start_index' debe ser el "id" del primer párrafo del bloque detectado.
-3. 'end_index' debe ser el "id" del último párrafo del bloque.
-4. No cruces bloques. Deben ser totalmente independientes.
-5. Intenta que un bloque abarque títulos, descripciones y cláusulas del mismo servicio.{extra}
-
-Devuelve SOLO JSON válido respondiendo al esquema:
-{{
-  "conditional_blocks": [
-    {{
-      "variable_name": "incluir_disposicion_x",
-      "label": "¿Desea incluir la disposición X en el contrato?",
-      "start_index": 5,
-      "end_index": 10
-    }}
-  ]
-}}
-
-Texto JSON indexado:
-{indexed_text_json[:15000]}
-"""
+    prompt = (
+        "Eres un experto en estructuración y automatización de documentos de cualquier tipo "
+        "(contratos, propuestas, manuales, pólizas, presupuestos, etc.).\n\n"
+        "Recibirás los párrafos de un documento en formato JSON con \"id\" y \"text\". "
+        "Tu tarea es identificar bloques de párrafos que representan secciones OPCIONALES: "
+        "elementos que un usuario podría querer incluir o excluir al generar el documento final."
+        f"{extra_instructions}\n\n"
+        "REGLAS ESTRICTAS:\n"
+        "1. 'variable_name': nombre corto en código, minúsculas, sin acentos, con guiones bajos. "
+        "Ej: 'incluir_garantia', 'mostrar_anexo_tecnico'.\n"
+        "2. 'label': pregunta clara y humana en español. Ej: '¿Desea incluir la garantía de calidad?'.\n"
+        "3. 'start_index': el \"id\" exacto del PRIMER párrafo del bloque.\n"
+        "4. 'end_index': el \"id\" exacto del ÚLTIMO párrafo del bloque (inclusive).\n"
+        "5. Los bloques NO pueden solaparse.\n"
+        "6. Agrupa siempre el título de la sección con su contenido en el mismo bloque.\n"
+        "7. NO inventes bloques que no existen en el texto.\n\n"
+        "Devuelve SOLO JSON válido con este esquema:\n"
+        "{\"conditional_blocks\": [{\"variable_name\": \"incluir_seccion_x\", "
+        "\"label\": \"¿Desea incluir la sección X?\", \"start_index\": 5, \"end_index\": 10}]}\n\n"
+        f"Párrafos del documento (JSON indexado):\n{indexed_text_json[:15000]}"
+    )
     try:
         client = get_openai_client()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "Devuelve exclusivamente JSON válido."},
+                {"role": "system", "content": "Devuelve exclusivamente JSON válido según el esquema."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.1
@@ -585,35 +590,31 @@ Texto JSON indexado:
         print(f"Error en generate_conditional_blocks_proposal: {e}")
         return []
 
+
 def inject_conditions_to_docx(file_path: str, blocks: list) -> str:
-    """Modifica el documento original inyectando {%p if %} alrededor de los índices."""
+    """Modifica el documento inyectando {%p if %} y {%p endif %} por índice de párrafo."""
     try:
         doc = Document(file_path)
-        
-        # Ordenamos los bloques del final hacia el principio 
-        # para que al insertar nuevos párrafos no alteremos los índices originales
+        # Procesar de atrás hacia adelante para no alterar los índices al insertar
         sorted_blocks = sorted(blocks, key=lambda x: x['start_index'], reverse=True)
-        
+
         for block in sorted_blocks:
             var_name = block.get('variable_name')
             start_id = block.get('start_index')
             end_id = block.get('end_index')
-            
-            # Verificar rangos válidos
+
             if start_id < 0 or end_id >= len(doc.paragraphs):
                 continue
-                
-            # Insertar el fin primero (ya que es más abajo en el documento)
-            # Insertamos después del end_p: Para eso, insertamos ANTES del end_p + 1. 
-            # Si es el último párrafo, añadimos al final del documento.
+
             if end_id + 1 < len(doc.paragraphs):
-                doc.paragraphs[end_id + 1].insert_paragraph_before(f'{{%p endif %}}')
+                doc.paragraphs[end_id + 1].insert_paragraph_before('{%p endif %}')
             else:
-                doc.add_paragraph(f'{{%p endif %}}')
-                
-            # Insertar el inicio (antes del start_p)
-            doc.paragraphs[start_id].insert_paragraph_before(f'{{%p if {var_name} == "Sí" %}}')
-            
+                doc.add_paragraph('{%p endif %}')
+
+            doc.paragraphs[start_id].insert_paragraph_before(
+                f'{{%p if {var_name} == "Sí" %}}'
+            )
+
         doc.save(file_path)
         return file_path
     except Exception as e:

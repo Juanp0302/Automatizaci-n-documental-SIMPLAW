@@ -4,6 +4,7 @@
 *.sqlite3
 
 # Env files
+.env
 backend/.env
 frontend/.env
 *.env.production

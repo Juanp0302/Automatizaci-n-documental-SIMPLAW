@@ -12,9 +12,10 @@ services:
       - ./backend/generated_docs:/app/generated_docs
       - ./backend/templates:/app/templates
       - ./backend/sql_app.db:/app/sql_app.db
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=sqlite:///sql_app.db
-      - BACKEND_CORS_ORIGINS=["http://localhost", "http://localhost:80", "http://localhost:3000"]
     restart: unless-stopped
 
   frontend:

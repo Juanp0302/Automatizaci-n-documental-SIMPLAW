@@ -8,7 +8,7 @@ export const templatesAPI = {
             'Content-Type': 'multipart/form-data',
         },
     }),
-    update: (id, data) => api.put(`/templates/${id}/`, data),
+    update: (id, data) => api.put(`/templates/${id}`, data),
     delete: (id) => api.delete(`/templates/${id}/`),
     getVariables: (id) => api.get(`/templates/${id}/variables/`),
     getVariableGroups: (id) => api.get(`/templates/${id}/variable-groups`),

@@ -612,7 +612,7 @@ def inject_conditions_to_docx(file_path: str, blocks: list) -> str:
                 doc.add_paragraph('{%p endif %}')
 
             doc.paragraphs[start_id].insert_paragraph_before(
-                f'{{%p if {var_name} == "Sí" %}}'
+                f'{{%p if {var_name} %}}'
             )
 
         doc.save(file_path)

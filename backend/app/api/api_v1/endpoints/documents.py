@@ -269,6 +269,14 @@ def create_document(
                 
         context = expand_numbered_elements(context, template_schema)
         
+        # Convertir valores Sí/No de campos condicionales a True/False para Jinja2
+        for k, v in list(context.items()):
+            if v in ('Sí', 'Si', 'sí', 'si', 'yes', 'Yes', 'YES'):
+                context[k] = True
+            elif v in ('No', 'no', 'NO'):
+                context[k] = False
+
+        
         # Add basic metadata if not present
         if "title" not in context:
             context["title"] = document_in.title

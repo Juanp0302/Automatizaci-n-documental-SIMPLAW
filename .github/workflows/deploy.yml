@@ -13,7 +13,7 @@ jobs:
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
             set -e
-            cd ~/automatizacion/herramienta
+            cd ~/Automatizaci-n-documental-SIMPLAW
             # Backup the database safely in case git pulls delete it
             cp backend/sql_app.db backend/sql_app.db.bak || true
             
@@ -35,12 +35,12 @@ jobs:
               touch backend/sql_app.db
             fi
             
-            docker compose down --remove-orphans
-            docker compose up -d --build --force-recreate
+            docker-compose down --remove-orphans
+            docker-compose up -d --build --force-recreate
             
             # Wait for container startup and capture logs if it crashes
             sleep 10
             echo "========== BACKEND LOGS =========="
-            docker compose logs backend --tail 200
+            docker-compose logs --tail=50 backend
             echo "========== FRONTEND LOGS =========="
-            docker compose logs frontend --tail 50
+            docker-compose logs --tail=20 frontend

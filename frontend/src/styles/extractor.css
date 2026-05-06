@@ -1,0 +1,218 @@
+/* ═══════════════════════════════════════════════════
+   SIMPLAW Extractor — Scoped Design System
+   Ported from the original Electron application.
+   All classes prefixed with -ei to avoid collisions.
+   ═══════════════════════════════════════════════════ */
+
+.extractor-theme {
+  --ei-bg-primary: #0f172a;
+  --ei-bg-secondary: #1e293b;
+  --ei-bg-tertiary: #334155;
+  --ei-bg-card: #1e293b;
+  --ei-text-primary: #f1f5f9;
+  --ei-text-secondary: #94a3b8;
+  --ei-text-muted: #64748b;
+  --ei-border: #334155;
+  --ei-border-light: #475569;
+  --ei-accent: #3b82f6;
+  --ei-accent-hover: #2563eb;
+  --ei-success: #22c55e;
+  --ei-warning: #f59e0b;
+  --ei-danger: #ef4444;
+
+  background-color: var(--ei-bg-primary);
+  color: var(--ei-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+}
+
+/* ── Sidebar ── */
+
+.extractor-theme .sidebar-ei {
+  background: #2E3138;
+  border-right: 1px solid var(--ei-border);
+  flex-shrink: 0;
+}
+
+.extractor-theme .sidebar-item-ei {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 150ms;
+  cursor: pointer;
+  width: 100%;
+  color: var(--ei-text-secondary);
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+.extractor-theme .sidebar-item-ei:hover {
+  background: var(--ei-bg-tertiary);
+  color: var(--ei-text-primary);
+}
+.extractor-theme .sidebar-item-ei.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+.extractor-theme .sidebar-item-ei.active svg {
+  color: #3b82f6;
+}
+
+/* ── Cards ── */
+
+.extractor-theme .card-ei {
+  background: var(--ei-bg-card);
+  border: 1px solid var(--ei-border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 200ms;
+}
+
+/* ── Buttons ── */
+
+.extractor-theme .btn-primary-ei {
+  background: #2563eb;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 150ms;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.extractor-theme .btn-primary-ei:hover {
+  background: #1d4ed8;
+}
+.extractor-theme .btn-primary-ei:active {
+  transform: scale(0.97);
+}
+.extractor-theme .btn-primary-ei:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.extractor-theme .btn-secondary-ei {
+  background: transparent;
+  color: #cbd5e1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 150ms;
+  border: 1px solid var(--ei-border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.extractor-theme .btn-secondary-ei:hover {
+  background: var(--ei-bg-tertiary);
+  color: white;
+}
+
+/* ── Inputs ── */
+
+.extractor-theme .input-ei {
+  background: var(--ei-bg-tertiary);
+  color: var(--ei-text-primary);
+  border: 1px solid var(--ei-border);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  outline: none;
+  width: 100%;
+  transition: border-color 150ms;
+}
+.extractor-theme .input-ei:focus {
+  border-color: var(--ei-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+.extractor-theme .input-ei::placeholder {
+  color: var(--ei-text-muted);
+}
+
+/* Select inherits input style */
+.extractor-theme select.input-ei {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* ── Labels ── */
+
+.extractor-theme .label-ei {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: var(--ei-text-secondary);
+}
+
+/* ── Badges ── */
+
+.extractor-theme .badge-ei {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.extractor-theme .badge-blue-ei   { background: rgba(59, 130, 246, 0.2);  color: #60a5fa; }
+.extractor-theme .badge-green-ei  { background: rgba(34, 197, 94, 0.2);   color: #4ade80; }
+.extractor-theme .badge-yellow-ei { background: rgba(245, 158, 11, 0.2);  color: #fbbf24; }
+.extractor-theme .badge-red-ei    { background: rgba(239, 68, 68, 0.2);   color: #f87171; }
+
+/* ── Section Title ── */
+
+.extractor-theme .section-title-ei {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  color: var(--ei-text-muted);
+}
+
+/* ── Page Header ── */
+
+.extractor-theme .page-header-ei {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Scrollbar ── */
+
+.extractor-theme ::-webkit-scrollbar { width: 6px; height: 6px; }
+.extractor-theme ::-webkit-scrollbar-track { background: transparent; }
+.extractor-theme ::-webkit-scrollbar-thumb { background: var(--ei-border-light); border-radius: 3px; }
+.extractor-theme ::-webkit-scrollbar-thumb:hover { background: var(--ei-text-muted); }
+
+/* ── Animations ── */
+
+.extractor-theme .animate-fade-in { animation: ei-fadeIn 0.2s ease-in-out; }
+.extractor-theme .animate-slide-in { animation: ei-slideIn 0.25s ease-out; }
+
+@keyframes ei-fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ei-slideIn { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: translateY(0) } }
+
+/* ── Global button reset within extractor ── */
+
+.extractor-theme button:not(.btn-primary-ei):not(.btn-secondary-ei):not(.sidebar-item-ei) {
+  background: transparent;
+  color: inherit;
+  border: none;
+  cursor: pointer;
+}

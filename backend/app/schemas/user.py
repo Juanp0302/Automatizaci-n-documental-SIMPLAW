@@ -6,6 +6,7 @@ class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = True
     is_superuser: bool = False
+    has_extractor_access: bool = False
     full_name: Optional[str] = None
 
 # Properties to receive via API on creation

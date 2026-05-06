@@ -19,6 +19,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             full_name=obj_in.full_name,
             is_superuser=obj_in.is_superuser,
             is_active=obj_in.is_active,
+            has_extractor_access=obj_in.has_extractor_access,
         )
         db.add(db_obj)
         db.commit()

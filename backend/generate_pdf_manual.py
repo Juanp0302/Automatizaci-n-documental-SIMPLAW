@@ -24,13 +24,38 @@ def create_manual():
     p = doc.add_paragraph('El sistema utiliza ')
     run = p.add_run('variables')
     run.bold = True
-    p.add_run(' para identificar las partes dinámicas del documento.')
-    
+    p.add_run(' para identificar las partes dinámicas del documento. Existen tres tipos principales de variables que puedes definir:')
+
+    doc.add_heading('Variables Simples', level=2)
+    doc.add_paragraph('Son campos de texto único. Se envuelven entre llaves dobles.')
     doc.add_paragraph('Sintaxis: {{nombre_variable}}', style='Quote')
-    
     doc.add_paragraph('Ejemplo: "En la ciudad de {{ciudad}}, a los {{dia}} días..."')
+
+    doc.add_heading('Elementos Numerados (Listas o Grupos)', level=2)
+    doc.add_paragraph('Se utilizan para recolectar múltiples elementos del mismo tipo (ej. "Servicios" o "Pagos") mediante listas o tablas de manera dinámica.')
+    doc.add_paragraph('Sintaxis: {{grupo_N_campo}} o {{grupo_N}}', style='Quote')
+    doc.add_paragraph('Ejemplo (Tabla de Pagos):')
+    doc.add_paragraph('Fila 1: {{pago_1_monto}} | {{pago_1_fecha}}', style='List Bullet')
+    doc.add_paragraph('Fila 2: {{pago_2_monto}} | {{pago_2_fecha}}', style='List Bullet')
+    doc.add_paragraph('Nota: El sistema agrupará esto y permitirá "Añadir Elemento" dinámicamente.', style='Quote')
+
+    doc.add_heading('Variables Condicionadas (Párrafos Opcionales)', level=2)
+    doc.add_paragraph('¿Para qué sirven?: Para ocultar párrafos o cláusulas enteras de un documento si el cliente responde que "NO" a una situación específica (ej. Mascotas, Cláusula Penal).')
     
-    doc.add_paragraph('Reglas:', style='List Bullet')
+    doc.add_paragraph('El "truco": envolver el texto con dos comandos en Word:', style='List Bullet')
+    doc.add_paragraph('Al inicio del texto: {%p if incluir_mascotas %}', style='Quote')
+    doc.add_paragraph('Al final del texto: {%p endif %}', style='Quote')
+    
+    doc.add_paragraph('Ejemplo Paso a Paso:')
+    p_ex = doc.add_paragraph('{%p if llevar_mascotas %}\n', style='Quote')
+    p_ex.add_run('Cláusula Sexta - Mascotas: El arrendatario está autorizado para...\n').bold = True
+    p_ex.add_run('{%p endif %}')
+    
+    doc.add_paragraph('Al generar el contrato, el sistema preguntará "¿Llevar mascotas?":')
+    doc.add_paragraph('Si respondes SÍ: La cláusula se queda.', style='List Bullet')
+    doc.add_paragraph('Si respondes NO: La cláusula desaparece y el espacio en blanco se elimina automáticamente.', style='List Bullet')
+
+    doc.add_heading('Reglas Generales', level=2)
     doc.add_paragraph('Usa guiones bajos en lugar de espacios ({{nombre_completo}}).', style='List Bullet')
     doc.add_paragraph('El sistema respeta el formato (negrita, tamaño) de Word.', style='List Bullet')
 

@@ -10,7 +10,8 @@ function EditUserModal({ isOpen, onClose, onSuccess, user }) {
         password: '',
         full_name: '',
         is_superuser: false,
-        is_active: true
+        is_active: true,
+        has_extractor_access: false
     })
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState(null)
@@ -23,7 +24,8 @@ function EditUserModal({ isOpen, onClose, onSuccess, user }) {
                 password: '', // Password empty by default
                 full_name: user.full_name || '',
                 is_superuser: user.is_superuser || false,
-                is_active: user.is_active ?? true
+                is_active: user.is_active ?? true,
+                has_extractor_access: user.has_extractor_access || false
             })
         }
     }, [user])
@@ -130,6 +132,18 @@ function EditUserModal({ isOpen, onClose, onSuccess, user }) {
                                     onChange={handleChange}
                                 />
                                 Usuario Activo
+                            </label>
+                        </div>
+
+                        <div className="form-group checkbox-group">
+                            <label className="checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    name="has_extractor_access"
+                                    checked={formData.has_extractor_access}
+                                    onChange={handleChange}
+                                />
+                                Acceso a Extractor IA
                             </label>
                         </div>
 

@@ -223,16 +223,15 @@ DATABASE_URL=sqlite:///sql_app.db
 ---
 
 ## 📅 Estado Actual de la Sesión
-**Fecha:** 01/04/2026
+**Fecha:** 06/05/2026
 
 ### Contexto
-- La instancia EC2 anterior fue reemplazada por una nueva.
-- El código fue cargado desde GitHub a la nueva instancia correctamente.
-- **Pendiente:** Configurar la nueva instancia para recibir deployments automáticos (CI/CD) y hacer correr la aplicación.
+- Se ha implementado la funcionalidad de **Prompt de Identificación** para Tipos Documentales en el módulo Extractor.
+- Se han añadido campos de `description` y `aliases` a la configuración de los tipos documentales.
+- Se resolvieron errores de validación (422) y crasheos de UI relacionados con el formato de los aliases.
+- Los servidores están actualmente corriendo (Backend en 8000, Frontend en 3000).
 
 ### Próximos pasos inmediatos
-1. Instalar Docker + Docker Compose en la nueva instancia
-2. Configurar el `.env` con `OPENAI_API_KEY` y `SECRET_KEY` en la instancia
-3. Actualizar los secrets en GitHub (nuevo `AWS_HOST` y nueva `AWS_SSH_KEY`)
-4. Hacer primer deploy manual o via CI/CD
-5. Configurar Nginx + Certbot para HTTPS
+1. Verificar la efectividad de las pistas de identificación en la clasificación real de documentos.
+2. Continuar con la configuración de la nueva instancia EC2 si es necesario (según tareas pendientes previas).
+3. Implementar tests automatizados para el flujo de extracción.

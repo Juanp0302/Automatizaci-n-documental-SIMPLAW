@@ -44,6 +44,46 @@ La sección de **Plantillas** es el corazón del sistema. Aquí subes los archiv
 ![Gestión de Plantillas](./assets/03_plantillas.png)
 
 ### ¿Cómo configurar una plantilla de Inteligencia Artificial?
+
+### Preparación del Documento Word (Sintaxis de Variables)
+Antes de subir tu plantilla, debes insertar las variables dentro del archivo Word (`.docx`). Simplaw identifica tres tipos de variables principales basados en cómo las escribes:
+
+#### 1. Variables Simples
+Son datos únicos que cambiarán en cada documento generado. Se envuelven entre llaves dobles.
+* **Sintaxis:** `{{nombre_variable}}`
+* **Ejemplo:** El contrato se firma en la ciudad de `{{ciudad_firma}}`, a nombre de `{{nombre_cliente}}`.
+
+#### 2. Elementos Numerados (Listas o Grupos Dinámicos)
+Se utilizan para recolectar listas o tablas donde el usuario podrá añadir múltiples elementos del mismo tipo (ej. "Servicios" o "Pagos"). Para que el sistema lo convierta en un grupo dinámico, debes usar una estructura con número:
+* **Sintaxis:** `{{grupo_N_campo}}` o simplemente `{{grupo_N}}`
+* **Ejemplo en una tabla de pagos:**
+  * Fila 1: `{{pago_1_monto}}` - `{{pago_1_fecha}}`
+  * Fila 2: `{{pago_2_monto}}` - `{{pago_2_fecha}}`
+* *Nota:* En la pantalla de generación, el sistema unirá estos campos bajo el grupo "Pagos" permitiendo al usuario final añadir un número indefinido de filas usando el botón **+ Añadir Elemento**.
+
+#### 3. Variables Condicionadas (Párrafos Opcionales)
+A veces, hay párrafos o cláusulas enteras de un documento que solo quieres incluir si ocurre una situación específica (por ejemplo, quieres que una "Cláusula de Mascotas" solo aparezca si el cliente dice que sí tiene mascotas, y si no, que desaparezca sin dejar un hueco en blanco).
+
+Para lograr esto, debes decirle al sistema dónde **inicia** y dónde **termina** el texto opcional. 
+
+* **El "truco":** Debes "envolver" o "encerrar" tu texto en Word usando estos comandos:
+  1. Al inicio del texto, escribe: `{%p if incluir_mascotas %}` (puedes cambiar 'incluir_mascotas' por el nombre que quieras, usando siempre guiones bajos en vez de espacios).
+  2. Al final del texto, escribe: `{%p endif %}`.
+
+**📝 Ejemplo paso a paso en tu documento de Word:**
+
+> **{%p if llevar_mascotas %}**
+> **Cláusula Sexta - Mascotas:** El arrendatario está autorizado para tener hasta un límite de dos mascotas dentro del inmueble. El daño que las mascotas ocasionen deberá ser reparado por su cuenta.
+> **{%p endif %}**
+
+**¿Qué pasará cuando generes el documento en la plataforma?**
+El sistema te preguntará en la pantalla: *"¿LLevar mascotas?"*. 
+* Si respondes **SÍ**: El documento final mostrará la Cláusula Sexta normalmente y borrará los "códigos" `{%p if...}`.
+* Si respondes **NO**: Toda la Cláusula Sexta desaparecerá mágicamente y los demás párrafos se ajustarán hacia arriba, por lo que **no quedará ningún espacio en blanco**.
+
+💡 *Nota para no técnicos:* Si todo esto te parece muy complicado, ¡No te preocupes! Puedes subir tu documento normal de Word sin poner estos códigos. Luego, ya dentro de la plataforma, usa el botón de **"Configurar Lógica (IA)"**: la Inteligencia Artificial los detectará y los insertará de forma casi automática por ti.
+
+### Pasos para configurar la plantilla en el sistema:
 1. Haz clic en **Nueva Plantilla** y sube tu archivo base.
 2. Una vez subida, haz clic en el botón de configuración (⚙️).
 3. En la pantalla de configuración, puedes añadir campos manualmente, o usar el botón **"Detectar Automáticamente"**.

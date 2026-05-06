@@ -1,23 +1,13 @@
-import sqlite3
 
-# Connect to the database
-conn = sqlite3.connect(r'c:\Users\Usuario\Documents\Proyectos AUT\Automatización Documental\backend\sql_app.db')
-cursor = conn.cursor()
+from app.db.session import engine
+from sqlalchemy import inspect
 
-# Get table info for 'templates'
-cursor.execute("PRAGMA table_info(templates)")
-columns = cursor.fetchall()
+def check_schema():
+    inspector = inspect(engine)
+    columns = inspector.get_columns('doc_types')
+    print("Columns in 'doc_types' table:")
+    for column in columns:
+        print(f" - {column['name']} ({column['type']})")
 
-print("Columns in 'templates' table:")
-found_description = False
-for col in columns:
-    print(col)
-    if col[1] == 'description':
-        found_description = True
-
-if found_description:
-    print("\n✅ 'description' column FOUND.")
-else:
-    print("\n❌ 'description' column NOT FOUND.")
-
-conn.close()
+if __name__ == "__main__":
+    check_schema()

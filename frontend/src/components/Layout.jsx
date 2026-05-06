@@ -1,10 +1,12 @@
+import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './Layout.css'
 
 function Layout() {
-    const { logout, user } = useAuth()
+    const { logout, user, loading: authLoading } = useAuth()
     const navigate = useNavigate()
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     const handleLogout = () => {
         logout()
@@ -23,8 +25,21 @@ function Layout() {
 
     return (
         <div className="layout">
+            {/* Mobile Header */}
+            <div className="mobile-header">
+                <div className="logo">
+                    <img src="/logo.jpg" alt="Simplaw" className="logo-image" />
+                </div>
+                <button 
+                    className="mobile-menu-toggle"
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                    {isMobileMenuOpen ? '✕' : '☰'}
+                </button>
+            </div>
+
             {/* Sidebar */}
-            <aside className="sidebar">
+            <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <div className="logo">
                         <img src="/logo.jpg" alt="Simplaw" className="logo-image" />
@@ -32,33 +47,69 @@ function Layout() {
                 </div>
 
                 <nav className="sidebar-nav">
-                    <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
+                    <NavLink 
+                        to="/" 
+                        className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} 
+                        end
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    >
                         <span className="nav-icon">🏠</span>
                         <span>Dashboard</span>
                     </NavLink>
 
-                    <NavLink to="/templates" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                    <NavLink 
+                        to="/templates" 
+                        className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    >
                         <span className="nav-icon">📋</span>
                         <span>Plantillas</span>
                     </NavLink>
 
-                    <NavLink to="/documents" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                    <NavLink 
+                        to="/documents" 
+                        className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    >
                         <span className="nav-icon">📁</span>
                         <span>Documentos</span>
                     </NavLink>
 
-                    <NavLink to="/documents/new" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                    <NavLink 
+                        to="/documents/new" 
+                        className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    >
                         <span className="nav-icon">✨</span>
                         <span>Nuevo Documento</span>
                     </NavLink>
 
+                    {(user?.has_extractor_access || user?.is_superuser) && (
+                        <NavLink 
+                            to="/extractor" 
+                            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            <span className="nav-icon">🔍</span>
+                            <span>Extractor</span>
+                        </NavLink>
+                    )}
+
                     {user?.is_superuser && (
                         <>
-                            <NavLink to="/users" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <NavLink 
+                                to="/users" 
+                                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
                                 <span className="nav-icon">👥</span>
                                 <span>Usuarios</span>
                             </NavLink>
-                            <NavLink to="/statistics" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <NavLink 
+                                to="/statistics" 
+                                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
                                 <span className="nav-icon">📊</span>
                                 <span>Estadísticas</span>
                             </NavLink>

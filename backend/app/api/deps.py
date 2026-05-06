@@ -35,8 +35,9 @@ def get_current_user(
         print(f"Token validation error: {e}")
         print(traceback.format_exc())
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     user = db.query(User).filter(User.id == token_data.sub).first()
     if not user:
@@ -56,5 +57,15 @@ def get_current_active_superuser(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=400, detail="The user doesn't have enough privileges"
+        )
+    return current_user
+
+def get_current_extractor_user(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    if not current_user.has_extractor_access and not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have access to the Extractor module"
         )
     return current_user

@@ -100,6 +100,7 @@ function Users() {
                                 <th>Nombre</th>
                                 <th>Email</th>
                                 <th>Rol</th>
+                                <th>Extractor</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
@@ -115,6 +116,11 @@ function Users() {
                                     <td>
                                         <span className={`badge ${user.is_superuser ? 'badge-primary' : 'badge-secondary'}`}>
                                             {user.is_superuser ? 'Administrador' : 'Usuario'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className={`badge ${user.has_extractor_access ? 'badge-info' : 'badge-secondary'}`}>
+                                            {user.has_extractor_access ? 'Permitido' : 'Denegado'}
                                         </span>
                                     </td>
                                     <td>

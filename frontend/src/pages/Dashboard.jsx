@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { templatesAPI } from '../api/templates'
 import { documentsAPI } from '../api/documents'
 import './Dashboard.css'
 
 function Dashboard() {
+    const { user } = useAuth()
     const [stats, setStats] = useState({
         templates: 0,
         documents: 0,
@@ -17,19 +19,27 @@ function Dashboard() {
     }, [])
 
     const loadStats = async () => {
+        setLoading(true)
         try {
-            const [templatesRes, documentsRes] = await Promise.all([
+            // Using Promise.allSettled to prevent one failing call from blocking the others
+            const [templatesRes, documentsRes] = await Promise.allSettled([
                 templatesAPI.getAll(),
                 documentsAPI.getAll()
             ])
 
+            const templatesData = templatesRes.status === 'fulfilled' ? templatesRes.value.data : []
+            const documentsData = documentsRes.status === 'fulfilled' ? documentsRes.value.data : []
+
+            if (templatesRes.status === 'rejected') console.error('Error loading templates:', templatesRes.reason)
+            if (documentsRes.status === 'rejected') console.error('Error loading documents:', documentsRes.reason)
+
             setStats({
-                templates: templatesRes.data?.length || 0,
-                documents: documentsRes.data?.length || 0,
-                recent: documentsRes.data?.slice(0, 5) || []
+                templates: Array.isArray(templatesData) ? templatesData.length : 0,
+                documents: Array.isArray(documentsData) ? documentsData.length : 0,
+                recent: Array.isArray(documentsData) ? documentsData.slice(0, 5) : []
             })
         } catch (error) {
-            console.error('Error loading stats:', error)
+            console.error('Unexpected error loading dashboard stats:', error)
         } finally {
             setLoading(false)
         }
@@ -96,6 +106,12 @@ function Dashboard() {
                         <span className="quick-action-icon">📂</span>
                         <span className="quick-action-label">Mis Documentos</span>
                     </Link>
+                    {(user?.has_extractor_access || user?.is_superuser) && (
+                        <Link to="/extractor" className="quick-action card">
+                            <span className="quick-action-icon">🔍</span>
+                            <span className="quick-action-label">Extractor IA</span>
+                        </Link>
+                    )}
                 </div>
             </div>
 
@@ -110,7 +126,7 @@ function Dashboard() {
                                 <div className="recent-info">
                                     <span className="recent-title">{doc.title}</span>
                                     <span className="recent-date">
-                                        {new Date(doc.created_at).toLocaleDateString('es-ES')}
+                                        {doc.created_at ? new Date(doc.created_at).toLocaleDateString('es-ES') : 'N/A'}
                                     </span>
                                 </div>
                             </div>

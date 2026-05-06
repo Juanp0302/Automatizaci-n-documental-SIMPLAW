@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { templatesAPI } from '../api/templates'
 import { documentsAPI } from '../api/documents'
 import { useToast } from '../context/ToastContext'
@@ -183,9 +183,10 @@ function NewDocument() {
     const [hasSchema, setHasSchema] = useState(false)
 
     const navigate = useNavigate()
+    const location = useLocation()
     const [searchParams] = useSearchParams()
     const toast = useToast()
-    const [prefillData, setPrefillData] = useState(null)
+    const [prefillData, setPrefillData] = useState(location.state?.prefill || null)
 
     useEffect(() => { loadTemplates() }, [])
 

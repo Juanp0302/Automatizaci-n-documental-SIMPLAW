@@ -10,7 +10,8 @@ function CreateUserModal({ isOpen, onClose, onSuccess }) {
         password: '',
         full_name: '',
         is_superuser: false,
-        is_active: true
+        is_active: true,
+        has_extractor_access: false
     })
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState(null)
@@ -41,7 +42,8 @@ function CreateUserModal({ isOpen, onClose, onSuccess }) {
                 password: '',
                 full_name: '',
                 is_superuser: false,
-                is_active: true
+                is_active: true,
+                has_extractor_access: false
             })
         } catch (err) {
             const msg = err.response?.data?.detail || 'Error al crear usuario'
@@ -109,6 +111,19 @@ function CreateUserModal({ isOpen, onClose, onSuccess }) {
                             Es Administrador (Superuser)
                         </label>
                         <p className="help-text">Los administradores tienen acceso total al sistema.</p>
+                    </div>
+
+                    <div className="form-group checkbox-group">
+                        <label className="checkbox-label">
+                            <input
+                                type="checkbox"
+                                name="has_extractor_access"
+                                checked={formData.has_extractor_access}
+                                onChange={handleChange}
+                            />
+                            Acceso a Extractor IA
+                        </label>
+                        <p className="help-text">Permite al usuario utilizar el módulo de extracción de datos con IA.</p>
                     </div>
 
                     <div className="form-actions" style={{ marginTop: '2rem' }}>

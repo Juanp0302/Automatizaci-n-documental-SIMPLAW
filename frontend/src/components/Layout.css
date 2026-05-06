@@ -7,6 +7,10 @@
     min-height: 100vh;
 }
 
+.mobile-header {
+    display: none;
+}
+
 /* ========================================
    Sidebar
    ======================================== */
@@ -237,9 +241,40 @@
    ======================================== */
 
 @media (max-width: 768px) {
+    .mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 var(--space-4);
+        height: 64px;
+        background-color: #932E20;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 110;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .mobile-menu-toggle {
+        background: none;
+        border: none;
+        color: #F2E9D8;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: var(--space-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     .sidebar {
         transform: translateX(-100%);
         transition: transform var(--transition-base);
+        padding-top: 64px; /* Space for mobile header if needed, but sidebar is fixed inset */
+        top: 0;
+        width: 100%; /* Full width on mobile for better UX */
+        max-width: 280px;
     }
 
     .sidebar.open {
@@ -249,6 +284,7 @@
     .main-content {
         margin-left: 0;
         padding: var(--space-4);
+        padding-top: 80px; /* Space for fixed mobile header */
     }
 }
 

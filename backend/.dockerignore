@@ -1,0 +1,17 @@
+venv/
+miapp/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.env
+.pytest_cache/
+tests/
+generated_docs/
+server_debug*.log
+server_log*.txt
+sql_app.db
+simplaw.db
+.git/

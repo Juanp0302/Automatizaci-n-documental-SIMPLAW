@@ -36,6 +36,12 @@ jobs:
             fi
             
             docker-compose down --remove-orphans
+            
+            # CLEARS CACHE AND FREES DISK SPACE BEFORE REBUILDING
+            echo "Frees up space before building..."
+            docker builder prune -a -f || true
+            docker system prune -f || true
+            
             docker-compose up -d --build --force-recreate
             
             # Wait for container startup and capture logs if it crashes

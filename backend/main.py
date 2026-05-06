@@ -61,6 +61,14 @@ def startup_event():
         except Exception as e:
             # Column likely already exists or other error, ignore
             pass
+            
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN has_extractor_access BOOLEAN DEFAULT 0"))
+            logger.info("Successfully added has_extractor_access column to users table.")
+        except Exception as e:
+            # Column likely already exists or other error, ignore
+            pass
         
         # Initialize DB with admin user
         db = SessionLocal()

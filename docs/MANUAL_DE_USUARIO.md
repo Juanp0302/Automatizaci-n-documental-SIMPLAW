@@ -10,7 +10,7 @@ img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1)
 
 # Manual de Usuario - Automatización Documental (Simplaw)
 
-Bienvenido al sistema de Automatización Documental. Este manual te guiará paso a paso por todas las funcionalidades de la plataforma, permitiéndote gestionar plantillas, generar documentos mediante inteligencia artificial y administrar usuarios y métricas de uso.
+Bienvenido al sistema de Automatización Documental (SIMPLAW). Este manual te guiará paso a paso por las dos grandes potencias de la plataforma: la **Automatización de Plantillas** y el **Extractor de Datos con IA**, permitiéndote optimizar tu flujo de trabajo legal de manera integral.
 
 ---
 
@@ -28,13 +28,13 @@ El acceso a la plataforma está restringido y requiere credenciales válidas. Si
 ## 2. Panel Principal (Dashboard)
 Una vez inicias sesión, accederás al **Dashboard**. Esta pantalla te brinda un resumen instantáneo de tu actividad reciente.
 
-![Dashboard Principal](./assets/02_dashboard.png)
+![Dashboard Principal](./assets/02_dashboard_v2.png)
 
 Desde el menú lateral izquierdo podrás navegar rápidamente a las diferentes secciones:
 * **Plantillas:** Administra tus archivos base (Word o PDF).
 * **Documentos:** Consulta el historial de documentos generados.
+* **Extractor:** Accede al módulo de procesamiento masivo de documentos con IA.
 * **Nuevo Documento:** El asistente para crear un archivo llenando un formulario.
-* **Usuarios/Estadísticas:** (Solo Administradores) Control de acceso y uso.
 
 <div class="page-break"></div>
 
@@ -107,16 +107,53 @@ Si la plantilla requería una lista de elementos (por ejemplo, "Lista de Servici
 
 <div class="page-break"></div>
 
-## 5. Panel de Administración y Estadísticas
-Si tu cuenta tiene previlegios de *Superusuario*, verás un botón adicional en el menú lateral llamado **Usuarios** y **Estadísticas**.
+<div class="page-break"></div>
 
-![Panel de Estadísticas](./assets/06_estadisticas.png)
+## 5. Extractor de Datos (IA)
+El **Extractor** es un módulo avanzado que permite procesar grandes volúmenes de documentos (PDF o Word) para extraer información estructurada automáticamente mediante Inteligencia Artificial.
 
-### Estadísticas de Uso
-Para entender cómo se está utilizando la herramienta, la sección de **Estadísticas** agrupa automáticamente el número de documentos creados. Esto te permite facturar a tus clientes por volumen o simplemente auditar las plantillas más exitosas:
-* **Generados por Usuario:** ¿Quién está utilizando más el software?
-* **Generados por Plantilla:** ¿Cuál es el contrato más recurrente?
+### Flujo de Trabajo del Extractor
+
+#### 1. Gestión de Proyectos
+Todo comienza con un **Proyecto**. Un proyecto agrupa documentos del mismo tipo o cliente. En la pantalla inicial del extractor verás tus proyectos activos.
+
+![Lista de Proyectos](./assets/07_extractor_proyectos.png)
+
+#### 2. Definición del Esquema (Campos a Extraer)
+Antes de subir documentos, debes definir **qué** quieres extraer. En la sección **Campos**, puedes crear una lista de etiquetas (ej. "Fecha del Contrato", "Nombre del Vendedor", "Valor Total").
+* La IA utilizará estas etiquetas para buscar la información específica en cada página del documento.
+
+![Configuración de Esquema](./assets/09_extractor_schema.png)
+
+#### 3. Carga y Procesamiento
+Una vez configurado el esquema, sube tus archivos en la sección principal del proyecto. El sistema comenzará el procesamiento automáticamente:
+1. **OCR:** Lectura de texto (incluso en PDF escaneados).
+2. **Análisis IA:** Identificación de los campos definidos en el esquema.
+3. **Resumen:** Generación de un resumen ejecutivo del documento.
+
+![Carga y Progreso](./assets/08_extractor_detalle.png)
+
+#### 4. Bandeja de Revisión y Aprobación
+La Inteligencia Artificial es una gran ayuda, pero la validación humana es clave. En la **Bandeja de Revisión**, podrás ver el resultado de cada documento:
+* Si el dato es correcto, haz clic en **Aprobar**.
+* Si el dato necesita un ajuste, puedes editarlo directamente en la tabla.
+* Una vez aprobado, el documento se marca como "Completado".
+
+![Bandeja de Revisión](./assets/10_extractor_revision.png)
+
+#### 5. Exportación de Resultados
+Cuando hayas procesado y aprobado tus documentos, ve a la sección **Exportar**. Aquí podrás descargar un archivo **Excel** consolidado con toda la información extraída de todos los documentos del proyecto. 
+
+![Exportar a Excel](./assets/11_extractor_exportar.png)
 
 <div class="note">
-<strong>Tip Administrativo:</strong> Puedes usar este panel para restringir acceso rápidamente ingresando a "Usuarios" y desactivando el interruptor de estado (🛑) de cualquier empleado o cliente.
+<strong>Tip:</strong> El extractor es ideal para procesos de Due Diligence, auditorías de contratos masivos o digitalización de expedientes antiguos.
 </div>
+
+<div class="page-break"></div>
+
+## 6. Perfil y Preferencias
+Puedes acceder a tu perfil desde la parte superior derecha (clic en tu nombre/avatar). Aquí podrás:
+* Cambiar tu contraseña.
+* Actualizar tu información de contacto.
+* Cerrar sesión de forma segura.

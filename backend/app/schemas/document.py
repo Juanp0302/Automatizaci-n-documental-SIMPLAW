@@ -31,3 +31,6 @@ class DocumentInDBBase(DocumentBase):
 
 class Document(DocumentInDBBase):
     pass
+
+class DocumentBulkDownload(BaseModel):
+    ids: list[int]

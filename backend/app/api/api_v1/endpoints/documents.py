@@ -468,6 +468,58 @@ def download_document(
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
 
+@router.post("/bulk-download")
+def bulk_download_documents(
+    *,
+    db: Session = Depends(deps.get_db),
+    bulk_in: schemas.DocumentBulkDownload,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Download multiple documents in a ZIP file.
+    """
+    import zipfile
+    import io
+    
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        for doc_id in bulk_in.ids:
+            document = crud.document.get(db, id=doc_id)
+            if not document:
+                continue # Or handle error
+                
+            if not current_user.is_superuser and (document.user_id != current_user.id):
+                continue # Skip documents the user doesn't own
+                
+            file_path = document.generated_file_path
+            if not os.path.isabs(file_path):
+                file_path = os.path.join(settings.BASE_DIR, file_path)
+                
+            if os.path.exists(file_path):
+                # Use the document title as the filename inside the zip
+                # Ensure it has .docx extension if it doesn't already
+                arcname = f"{document.title}"
+                if not arcname.lower().endswith(".docx"):
+                    arcname += ".docx"
+                
+                # If there are duplicates in the zip, zipfile handles it, but let's be safe
+                zip_file.write(file_path, arcname)
+
+    zip_buffer.seek(0)
+    
+    filename = f"documentos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    
+    return Response(
+        content=zip_buffer.getvalue(),
+        media_type='application/zip',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Content-Length': str(len(zip_buffer.getvalue()))
+        }
+    )
+
+
 @router.post("/preview")
 def preview_document(
     *,

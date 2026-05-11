@@ -8,6 +8,7 @@ export const documentsAPI = {
         params: { format },
         responseType: 'blob'
     }),
+    bulkDownload: (ids) => api.post('/documents/bulk-download', { ids }, { responseType: 'blob' }),
     delete: (id) => api.delete(`/documents/${id}/`),
     preview: (data) => api.post('/documents/preview', data, { responseType: 'blob' })
 }

@@ -11,6 +11,7 @@ function Documents() {
     const [searchQuery, setSearchQuery] = useState('')
     const [dateFilter, setDateFilter] = useState('all')
     const [deleteTarget, setDeleteTarget] = useState(null)
+    const [selectedIds, setSelectedIds] = useState([])
     const toast = useToast()
 
     useEffect(() => {
@@ -51,6 +52,7 @@ function Documents() {
 
             const response = await documentsAPI.getAll(params)
             setDocuments(response.data || [])
+            setSelectedIds([]) // Clear selection when data reloads
         } catch (err) {
             setError('Error al cargar los documentos')
             toast.error('Error al cargar los documentos')
@@ -76,6 +78,42 @@ function Documents() {
         } catch (err) {
             console.error('Error downloading document:', err)
             toast.error('Error al descargar el documento')
+        }
+    }
+
+    const handleBulkDownload = async () => {
+        if (selectedIds.length === 0) return
+        try {
+            toast.info(`Generando ZIP con ${selectedIds.length} documentos...`)
+            const response = await documentsAPI.bulkDownload(selectedIds)
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const link = document.createElement('a')
+            link.href = url
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+            link.setAttribute('download', `documentos_${timestamp}.zip`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            toast.success("Descarga masiva iniciada")
+        } catch (err) {
+            console.error('Error in bulk download:', err)
+            toast.error('Error en la descarga masiva')
+        }
+    }
+
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => 
+            prev.includes(id) 
+                ? prev.filter(i => i !== id) 
+                : [...prev, id]
+        )
+    }
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === documents.length) {
+            setSelectedIds([])
+        } else {
+            setSelectedIds(documents.map(d => d.id))
         }
     }
 
@@ -112,6 +150,28 @@ function Documents() {
                     Historial de documentos generados
                 </p>
             </div>
+
+            {selectedIds.length > 0 && (
+                <div className="bulk-actions-bar animate-slide-down">
+                    <div className="selection-info">
+                        <strong>{selectedIds.length}</strong> {selectedIds.length === 1 ? 'documento seleccionado' : 'documentos seleccionados'}
+                    </div>
+                    <div className="bulk-buttons">
+                        <button 
+                            className="btn btn-primary"
+                            onClick={handleBulkDownload}
+                        >
+                            📦 Descargar ZIP
+                        </button>
+                        <button 
+                            className="btn btn-secondary"
+                            onClick={() => setSelectedIds([])}
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {error && (
                 <div className="error-banner">
@@ -184,6 +244,13 @@ function Documents() {
                     <table className="table">
                         <thead>
                             <tr>
+                                <th style={{ width: '40px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={documents.length > 0 && selectedIds.length === documents.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
                                 <th>Título</th>
                                 <th>Fecha de Creación</th>
                                 <th>Acciones</th>
@@ -191,7 +258,14 @@ function Documents() {
                         </thead>
                         <tbody>
                             {documents.map((doc) => (
-                                <tr key={doc.id}>
+                                <tr key={doc.id} className={selectedIds.includes(doc.id) ? 'row-selected' : ''}>
+                                    <td>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedIds.includes(doc.id)}
+                                            onChange={() => toggleSelect(doc.id)}
+                                        />
+                                    </td>
                                     <td>
                                         <div className="doc-title-cell">
                                             <span className="doc-icon">📄</span>

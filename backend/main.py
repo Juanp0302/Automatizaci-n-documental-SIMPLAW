@@ -56,6 +56,14 @@ def startup_event():
         # Safe schema migration for production SQLite DBs
         try:
             with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE documents ADD COLUMN variables JSON"))
+            logger.info("Successfully added variables column to documents table.")
+        except Exception as e:
+            # Column likely already exists or other error, ignore
+            pass
+
+        try:
+            with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE documents ADD COLUMN ai_review_summary VARCHAR"))
             logger.info("Successfully added ai_review_summary column to documents table.")
         except Exception as e:

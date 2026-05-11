@@ -1,0 +1,13 @@
+Error in bulk_download_documents:
+Traceback (most recent call last):
+  File "C:\Users\Usuario\Documents\Proyectos AUT\Automatización Documental\backend\app\api\api_v1\endpoints\documents.py", line 488, in bulk_download_documents
+    excel_data = export_documents_to_excel(
+        db,
+    ...<2 lines>...
+        current_user.is_superuser
+    )
+  File "C:\Users\Usuario\Documents\Proyectos AUT\Automatización Documental\backend\app\services\document_export.py", line 32, in export_documents_to_excel
+    if document.variables:
+       ^^^^^^^^^^^^^^^^^^
+AttributeError: 'Document' object has no attribute 'variables'
+

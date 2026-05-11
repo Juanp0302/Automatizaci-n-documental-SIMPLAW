@@ -81,20 +81,28 @@ function Documents() {
         }
     }
 
-    const handleBulkDownload = async () => {
+    const handleBulkDownload = async (format = 'word') => {
         if (selectedIds.length === 0) return
         try {
-            toast.info(`Generando ZIP con ${selectedIds.length} documentos...`)
-            const response = await documentsAPI.bulkDownload(selectedIds)
+            const isPdf = format === 'pdf'
+            if (isPdf) {
+                toast.info(`Iniciando conversión a PDF de ${selectedIds.length} documentos. Esto puede tardar unos segundos...`)
+            } else {
+                toast.info(`Generando ZIP con ${selectedIds.length} documentos...`)
+            }
+            
+            const response = await documentsAPI.bulkDownload(selectedIds, format)
             const url = window.URL.createObjectURL(new Blob([response.data]))
             const link = document.createElement('a')
             link.href = url
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-            link.setAttribute('download', `documentos_${timestamp}.zip`)
+            const extension = 'zip'
+            const baseName = isPdf ? 'documentos_pdf' : 'documentos'
+            link.setAttribute('download', `${baseName}_${timestamp}.${extension}`)
             document.body.appendChild(link)
             link.click()
             link.remove()
-            toast.success("Descarga masiva iniciada")
+            toast.success(isPdf ? "PDFs generados y descargados" : "Descarga masiva iniciada")
         } catch (err) {
             console.error('Error in bulk download:', err)
             let errorMsg = 'Error en la descarga masiva'
@@ -143,7 +151,8 @@ function Documents() {
             toast.success(`Documento "${deleteTarget.title}" eliminado`)
         } catch (err) {
             console.error('Error deleting document:', err)
-            toast.error('Error al eliminar el documento')
+            const errorMsg = err.response?.data?.detail || 'Error al eliminar el documento'
+            toast.error(errorMsg)
         } finally {
             setDeleteTarget(null)
         }
@@ -177,9 +186,16 @@ function Documents() {
                     <div className="bulk-buttons">
                         <button 
                             className="btn btn-primary"
-                            onClick={handleBulkDownload}
+                            onClick={() => handleBulkDownload('word')}
                         >
-                            📦 Descargar ZIP
+                            📦 Word (ZIP)
+                        </button>
+                        <button 
+                            className="btn btn-success"
+                            style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
+                            onClick={() => handleBulkDownload('pdf')}
+                        >
+                            📋 PDF (ZIP)
                         </button>
                         <button 
                             className="btn btn-secondary"

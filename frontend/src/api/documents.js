@@ -2,13 +2,13 @@ import api from './client'
 
 export const documentsAPI = {
     getAll: (params) => api.get('/documents/', { params }),
-    getById: (id) => api.get(`/documents/${id}/`),
+    getById: (id) => api.get(`/documents/${id}`),
     create: (data) => api.post('/documents/', data),
     download: (id, format = 'docx') => api.get(`/documents/${id}/download`, {
         params: { format },
         responseType: 'blob'
     }),
-    bulkDownload: (ids) => api.post('/documents/bulk-download', { ids }, { responseType: 'blob' }),
-    delete: (id) => api.delete(`/documents/${id}/`),
+    bulkDownload: (ids, format = 'word') => api.post('/documents/bulk-download', { ids, format }, { responseType: 'blob' }),
+    delete: (id) => api.delete(`/documents/${id}`),
     preview: (data) => api.post('/documents/preview', data, { responseType: 'blob' })
 }

@@ -34,3 +34,4 @@ class Document(DocumentInDBBase):
 
 class DocumentBulkDownload(BaseModel):
     ids: list[int]
+    format: str = "word"

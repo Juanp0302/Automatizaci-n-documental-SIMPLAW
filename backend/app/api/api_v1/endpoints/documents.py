@@ -481,11 +481,60 @@ def bulk_download_documents(
     import zipfile
     import io
     import traceback
+    from app.services.document_export import export_documents_to_excel
     
     try:
+        if bulk_in.format == "pdf":
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_STORED, False) as zip_file:
+                for doc_id in bulk_in.ids:
+                    document = crud.document.get(db, id=doc_id)
+                    if not document or not document.generated_file_path:
+                        continue
+                    
+                    if not current_user.is_superuser and (document.user_id != current_user.id):
+                        continue
+                    
+                    file_path = document.generated_file_path
+                    if not os.path.isabs(file_path):
+                        file_path = os.path.join(settings.BASE_DIR, file_path)
+                    
+                    if os.path.exists(file_path):
+                        pdf_path = file_path.replace(".docx", ".pdf")
+                        if not os.path.exists(pdf_path):
+                            logger.info(f"Bulk: Converting {file_path} to PDF...")
+                            try:
+                                convert_to_pdf(os.path.abspath(file_path), os.path.abspath(pdf_path))
+                            except Exception as conv_err:
+                                logger.error(f"Error converting {file_path} in bulk: {conv_err}")
+                                continue # Skip this one if conversion fails
+                        
+                        if os.path.exists(pdf_path):
+                            arcname = f"{document.title}"
+                            if not arcname.lower().endswith(".pdf"):
+                                arcname += ".pdf"
+                            zip_file.write(pdf_path, arcname)
+
+            zip_buffer.seek(0)
+            zip_content = zip_buffer.getvalue()
+            if not zip_content or len(zip_content) < 100:
+                raise HTTPException(status_code=400, detail="No se pudieron generar los PDFs o no hay archivos válidos.")
+            
+            filename = f"documentos_pdf_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+            return Response(
+                content=zip_content,
+                media_type='application/zip',
+                headers={
+                    'Content-Disposition': f'attachment; filename="{filename}"',
+                    'Content-Length': str(len(zip_content))
+                }
+            )
+
+        # Default to Word (ZIP)
         zip_buffer = io.BytesIO()
         
-        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        # Use ZIP_STORED to avoid dependencies on zlib if there are issues
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_STORED, False) as zip_file:
             for doc_id in bulk_in.ids:
                 document = crud.document.get(db, id=doc_id)
                 if not document:

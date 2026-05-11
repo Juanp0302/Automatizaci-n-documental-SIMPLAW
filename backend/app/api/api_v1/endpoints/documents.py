@@ -9,6 +9,7 @@ import os
 from app import crud, models, schemas
 from app.api import deps
 from app.core.config import settings
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,6 @@ def read_documents(
     # Parse dates if provided
     start_dt = None
     end_dt = None
-    from datetime import datetime
     
     try:
         if start_date:

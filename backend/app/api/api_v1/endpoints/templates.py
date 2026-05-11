@@ -407,8 +407,17 @@ def batch_generate_documents(
     from docxtpl import DocxTemplate
     from datetime import datetime
     
+    from io import BytesIO
+    import logging
+    logger = logging.getLogger(__name__)
+
     try:
-        wb = openpyxl.load_workbook(file.file)
+        # Read file into memory to avoid potential issues with SpooledTemporaryFile
+        file_content = file.file.read()
+        if not file_content:
+             raise HTTPException(status_code=400, detail="El archivo Excel está vacío.")
+             
+        wb = openpyxl.load_workbook(BytesIO(file_content))
         ws = wb.active
         
         headers = [cell.value for cell in ws[1]]
@@ -433,10 +442,18 @@ def batch_generate_documents(
             
             row_data = dict(zip(headers, row))
             
-            # Extract context variables
-            context = {k: v for k, v in row_data.items() if k != "output_filename" and v is not None}
+            # Extract context variables - Filter out None keys and output_filename
+            context = {str(k): v for k, v in row_data.items() if k is not None and k != "output_filename" and v is not None}
             
-            # Determine filename
+            # Convert Sí/No to Boolean for conditional blocks
+            for k, v in list(context.items()):
+                if isinstance(v, str):
+                    if v.strip().lower() in ('sí', 'si', 'yes', 'true'):
+                        context[k] = True
+                    elif v.strip().lower() in ('no', 'false'):
+                        context[k] = False
+
+            # Ensure output_filename is handled correctly if it exists
             custom_filename = row_data.get("output_filename")
             if not custom_filename:
                 safe_title = "".join([c for c in template.title if c.isalnum() or c in (' ', '-', '_')]).strip()
@@ -451,6 +468,9 @@ def batch_generate_documents(
             
             try:
                 # 1. Render Document
+                if not template.file_path.lower().endswith(".docx"):
+                    raise Exception(f"La generación masiva solo es compatible con plantillas Word (.docx). Esta plantilla es {os.path.splitext(template.file_path)[1]}")
+
                 doc = DocxTemplate(template.file_path)
                 
                 # Default context additions

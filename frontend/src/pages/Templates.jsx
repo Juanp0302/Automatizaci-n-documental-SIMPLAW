@@ -510,7 +510,8 @@ function Templates() {
                                                     toast.success("Proceso completado")
                                                 } catch (e) {
                                                     console.error(e)
-                                                    toast.error("Error en la generación masiva")
+                                                    const errorMsg = e.response?.data?.detail || "Error en la generación masiva"
+                                                    toast.error(errorMsg)
                                                 } finally {
                                                     setBatchLoading(false)
                                                 }

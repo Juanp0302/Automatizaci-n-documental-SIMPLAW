@@ -480,44 +480,62 @@ def bulk_download_documents(
     """
     import zipfile
     import io
+    import traceback
     
-    zip_buffer = io.BytesIO()
-    
-    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
-        for doc_id in bulk_in.ids:
-            document = crud.document.get(db, id=doc_id)
-            if not document:
-                continue # Or handle error
-                
-            if not current_user.is_superuser and (document.user_id != current_user.id):
-                continue # Skip documents the user doesn't own
-                
-            file_path = document.generated_file_path
-            if not os.path.isabs(file_path):
-                file_path = os.path.join(settings.BASE_DIR, file_path)
-                
-            if os.path.exists(file_path):
-                # Use the document title as the filename inside the zip
-                # Ensure it has .docx extension if it doesn't already
-                arcname = f"{document.title}"
-                if not arcname.lower().endswith(".docx"):
-                    arcname += ".docx"
-                
-                # If there are duplicates in the zip, zipfile handles it, but let's be safe
-                zip_file.write(file_path, arcname)
+    try:
+        zip_buffer = io.BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+            for doc_id in bulk_in.ids:
+                document = crud.document.get(db, id=doc_id)
+                if not document:
+                    continue
+                    
+                if not current_user.is_superuser and (document.user_id != current_user.id):
+                    continue
+                    
+                file_path = document.generated_file_path
+                if not file_path:
+                    continue
 
-    zip_buffer.seek(0)
-    
-    filename = f"documentos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
-    
-    return Response(
-        content=zip_buffer.getvalue(),
-        media_type='application/zip',
-        headers={
-            'Content-Disposition': f'attachment; filename="{filename}"',
-            'Content-Length': str(len(zip_buffer.getvalue()))
-        }
-    )
+                if not os.path.isabs(file_path):
+                    file_path = os.path.join(settings.BASE_DIR, file_path)
+                    
+                if os.path.exists(file_path):
+                    arcname = f"{document.title}"
+                    if not arcname.lower().endswith(".docx"):
+                        arcname += ".docx"
+                    zip_file.write(file_path, arcname)
+
+        zip_buffer.seek(0)
+        zip_content = zip_buffer.getvalue()
+        
+        if not zip_content or len(zip_content) < 100: # A zip with no files is ~22 bytes
+            logger.warning(f"Bulk download requested for IDs {bulk_in.ids} by user {current_user.id} but no files were added.")
+            raise HTTPException(status_code=400, detail="No se encontraron archivos válidos para descargar o no tienes permisos.")
+
+        filename = f"documentos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+        
+        logger.info(f"Serving bulk ZIP: {filename} ({len(zip_content)} bytes) for user {current_user.id}")
+        
+        return Response(
+            content=zip_content,
+            media_type='application/zip',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Length': str(len(zip_content))
+            }
+        )
+    except Exception as e:
+        error_msg = traceback.format_exc()
+        logger.error(f"Error in bulk download: {error_msg}")
+        try:
+            error_log_path = os.path.join(settings.BASE_DIR, "BULK_ERROR.txt")
+            with open(error_log_path, "w", encoding="utf-8") as f:
+                f.write(f"Error in bulk_download_documents:\n{error_msg}\n")
+        except:
+            pass
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/preview")

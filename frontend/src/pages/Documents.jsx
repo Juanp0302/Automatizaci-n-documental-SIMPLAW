@@ -97,7 +97,25 @@ function Documents() {
             toast.success("Descarga masiva iniciada")
         } catch (err) {
             console.error('Error in bulk download:', err)
-            toast.error('Error en la descarga masiva')
+            let errorMsg = 'Error en la descarga masiva'
+            
+            // If response is a Blob (common when responseType: 'blob' is used), parse it
+            if (err.response?.data instanceof Blob && err.response.data.type === 'application/json') {
+                const reader = new FileReader()
+                reader.onload = () => {
+                    try {
+                        const errorData = JSON.parse(reader.result)
+                        toast.error(errorData.detail || errorMsg)
+                    } catch (e) {
+                        toast.error(errorMsg)
+                    }
+                }
+                reader.readAsText(err.response.data)
+                return // Toast is handled in onload
+            } else {
+                errorMsg = err.response?.data?.detail || errorMsg
+                toast.error(errorMsg)
+            }
         }
     }
 

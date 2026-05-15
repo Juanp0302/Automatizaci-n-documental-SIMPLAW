@@ -22,18 +22,28 @@ def select_folder():
 
     result_file_escaped = result_file.replace("\\", "\\\\")
 
-    # .bat que ejecuta PowerShell con FolderBrowserDialog (ícono moderno de Windows)
+    # .bat que ejecuta PowerShell con FolderBrowserDialog (con fix para foco)
     bat_content = (
         '@echo off\n'
-        f'powershell -ExecutionPolicy Bypass -Command "'
+        f'powershell -NoProfile -ExecutionPolicy Bypass -Command "'
         f'Add-Type -AssemblyName System.Windows.Forms; '
+        f'[System.Windows.Forms.Application]::EnableVisualStyles(); '
         f'$dlg = New-Object System.Windows.Forms.FolderBrowserDialog; '
         f"$dlg.Description = 'Selecciona la carpeta de documentos'; "
         f'$dlg.ShowNewFolderButton = $true; '
-        f'$null = $dlg.ShowDialog(); '
-        f"'{result_file_escaped}' | ForEach-Object {{ "
-        f'[System.IO.File]::WriteAllText($_, $dlg.SelectedPath) '
-        f'}}"\n'
+        f'$form = New-Object System.Windows.Forms.Form; '
+        f'$form.TopMost = $true; '
+        f'$res = $dlg.ShowDialog($form); '
+        f"if ($res -eq 'OK') {{ "
+        f"  '{result_file_escaped}' | ForEach-Object {{ "
+        f"    [System.IO.File]::WriteAllText($_, $dlg.SelectedPath) "
+        f"  }} "
+        f"}} else {{ "
+        f"  '{result_file_escaped}' | ForEach-Object {{ "
+        f"    [System.IO.File]::WriteAllText($_, 'CANCEL') "
+        f"  }} "
+        f"}} "
+        f'$form.Dispose();"\n'
     )
 
     try:
@@ -50,6 +60,10 @@ def select_folder():
                     folder_path = f.read().strip()
                 _safe_delete(result_file)
                 _safe_delete(bat_path)
+                
+                if folder_path == 'CANCEL':
+                    return {"path": "", "message": "Selección cancelada"}
+                
                 return {"path": folder_path}
 
         _safe_delete(bat_path)

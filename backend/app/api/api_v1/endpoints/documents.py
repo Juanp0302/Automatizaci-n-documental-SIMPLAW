@@ -729,6 +729,8 @@ def delete_document(
     if not current_user.is_superuser and (document.user_id != current_user.id):
         raise HTTPException(status_code=400, detail="Not enough permissions")
 
+    logger.info(f"User {current_user.id} requested deletion of document {id}")
+
     # Delete file from disk
     file_path = document.generated_file_path
     if not os.path.isabs(file_path):
@@ -737,8 +739,16 @@ def delete_document(
     try:
         if os.path.exists(file_path):
             os.remove(file_path)
+            logger.info(f"Deleted file from disk: {file_path}")
+        else:
+            logger.warning(f"File not found on disk, skipping physical delete: {file_path}")
     except Exception as e:
-        logger.warning(f"Could not delete file {file_path}: {e}")
+        logger.error(f"Error deleting physical file {file_path}: {e}")
 
-    document = crud.document.remove(db, id=id)
-    return document
+    try:
+        document = crud.document.remove(db, id=id)
+        logger.info(f"Document {id} removed from database successfully")
+        return document
+    except Exception as db_err:
+        logger.error(f"Database error deleting document {id}: {db_err}")
+        raise HTTPException(status_code=500, detail=f"Error al eliminar de la base de datos: {str(db_err)}")

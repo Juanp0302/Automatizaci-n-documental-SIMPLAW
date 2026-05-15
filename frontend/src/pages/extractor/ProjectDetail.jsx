@@ -288,13 +288,14 @@ const ProjectDetail = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
-               <button 
+                <button 
                   onClick={handleStartExtraction}
                   className="btn-primary-ei" 
                   style={{ flex: 2, height: '48px', fontSize: '0.9rem', justifyContent: 'center' }}
-               >
+                >
                   <CheckCircle2 size={18} /> Iniciar Extracción Masiva
-                               <button 
+                </button>
+                <button 
                   onClick={handleReprocessAll}
                   disabled={saving}
                   className="btn-secondary-ei" 
@@ -313,9 +314,9 @@ const ProjectDetail = () => {
                     opacity: saving ? 0.5 : 1
                   }}
                   title="Re-procesar todo con IA"
-               >
+                >
                   {saving ? <Loader2 size={18} className="animate-spin" /> : <RotateCw size={18} />}
-               </button>   </button>
+                </button>
             </div>
           </div>
 

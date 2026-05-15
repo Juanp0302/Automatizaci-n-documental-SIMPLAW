@@ -668,3 +668,32 @@ async def reprocess_project_documents(
         background_tasks.add_task(process_document_task, deps.SessionLocal, doc.id, id)
     
     return {"message": f"Reprocessing started for {len(docs)} documents"}
+@router.delete("/documents/{doc_id}")
+def delete_extracted_document(
+    doc_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_extractor_user),
+) -> Any:
+    """Delete an individual extracted document and its related data."""
+    doc = db.query(ExtractedDocument).filter(ExtractedDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Check ownership
+    project = db.query(ExtractorProject).filter(ExtractorProject.id == doc.project_id, ExtractorProject.owner_id == current_user.id).first()
+    if not project and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this document")
+
+    # Delete related file from disk if it's in the uploads directory
+    if doc.file_path and "uploads" in doc.file_path:
+        try:
+            if os.path.exists(doc.file_path):
+                os.remove(doc.file_path)
+        except Exception as e:
+            logger.warning(f"Could not delete physical file {doc.file_path}: {e}")
+
+    # Related DocumentFieldValue and ExtractionAlert will be deleted via CASCADE
+    db.delete(doc)
+    db.commit()
+    
+    return {"message": "Document deleted successfully"}

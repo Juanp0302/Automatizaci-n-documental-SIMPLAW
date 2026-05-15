@@ -70,6 +70,17 @@ const DocumentExplorer = () => {
     }
   };
 
+  const handleDelete = async (docId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este documento? Esta acción no se puede deshacer.')) return;
+    try {
+      await api.delete(`/extractor/documents/${docId}`);
+      toast.success('Documento eliminado');
+      setDocs(docs.filter(d => d.id !== docId));
+    } catch (err) {
+      toast.error('Error al eliminar el documento');
+    }
+  };
+
   const filteredDocs = docs.filter(doc => {
     const matchesSearch = doc.file_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || doc.doc_type_id?.toString() === filterType;
@@ -197,6 +208,14 @@ const DocumentExplorer = () => {
                                     title="Descargar"
                                 >
                                     <Download size={16} />
+                                </button>
+                                <button 
+                                    onClick={() => handleDelete(doc.id)}
+                                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors" 
+                                    style={{ color: '#f87171' }}
+                                    title="Eliminar Documento"
+                                >
+                                    <Trash2 size={16} />
                                 </button>
                             </div>
                         </td>

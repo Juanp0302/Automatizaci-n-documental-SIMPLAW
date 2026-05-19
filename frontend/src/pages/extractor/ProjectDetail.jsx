@@ -65,44 +65,8 @@ const ProjectDetail = () => {
     });
   };
 
-  const handleSelectFolder = async () => {
-    try {
-      const res = await api.get('/extractor/utils/select-folder');
-      if (res.data.path) {
-        await api.put(`/extractor/projects/${projectId}`, { root_folder: res.data.path });
-        setProject({ ...project, root_folder: res.data.path });
-        setLogs(prev => [...prev, { type: 'info', msg: `Carpeta cambiada a: ${res.data.path}` }]);
-        toast.success('Carpeta actualizada');
-      } else if (res.data.error) {
-        console.error('Folder selection backend error:', res.data.error);
-        toast.error(`Error al seleccionar carpeta: ${res.data.message || res.data.error}`);
-      }
-    } catch (err) {
-      console.error('Select folder exception:', err);
-      const errorMsg = err.response?.data?.detail || err.message;
-      toast.error(`Error de conexión al seleccionar carpeta: ${errorMsg}`);
-    }
-  };
-
-  const handleStartExtraction = async () => {
-    if (!project?.root_folder) return toast.error('Selecciona una carpeta primero');
-    setLogs(prev => [...prev, { type: 'sys', msg: 'Iniciando escaneo masivo...' }]);
-    try {
-      const res = await api.post(`/extractor/projects/${projectId}/process-folder`);
-      setLogs(prev => [
-        ...prev, 
-        { type: 'info', msg: `Detectados ${res.data.count} archivos nuevos.` },
-        { type: 'ai', msg: 'Motor IA (GPT-4o) iniciado.' }
-      ]);
-      toast.success('Proceso de extracción iniciado');
-      
-      // Iniciar polling de progreso
-      startPolling();
-    } catch (err) {
-      setLogs(prev => [...prev, { type: 'error', msg: 'Fallo al iniciar el motor.' }]);
-      toast.error('Error al iniciar extracción: ' + (err.response?.data?.detail || err.message));
-    }
-  };
+  // Se removieron handleSelectFolder y handleStartExtraction ya que ahora todo 
+  // se maneja a través de la subida web directa (handleUpload) que encola el procesamiento.
 
   const startPolling = () => {
     const interval = setInterval(async () => {
@@ -199,17 +163,19 @@ const ProjectDetail = () => {
         </div>
         <input 
           type="file" 
-          id="file-upload" 
+          id="folder-upload" 
+          webkitdirectory="true"
+          directory="true"
           multiple 
           hidden 
           onChange={handleUpload} 
         />
         <button 
           className="btn-primary-ei" 
-          onClick={() => document.getElementById('file-upload').click()}
+          onClick={() => document.getElementById('folder-upload').click()}
           disabled={saving}
         >
-          <Upload size={16} /> {saving ? 'Subiendo...' : 'Subir Documentos'}
+          <FolderOpen size={16} /> {saving ? 'Subiendo...' : 'Subir Carpeta'}
         </button>
       </div>
 
@@ -238,42 +204,39 @@ const ProjectDetail = () => {
                   Ejecuta el análisis masivo de documentos usando el motor configurado.
                </p>
 
-               {/* Folder Selection Row */}
+               {/* Eliminamos "Carpeta de Origen" y ponemos botones directos de subida */}
                <div style={{ 
                   background: 'rgba(0,0,0,0.2)', 
                   borderRadius: '12px', 
-                  padding: '12px 16px', 
+                  padding: '16px', 
                   marginBottom: '24px',
                   border: '1px solid rgba(255,255,255,0.05)',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
+                  flexDirection: 'column',
                   gap: '12px'
                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                     <FolderOpen size={18} style={{ color: '#60a5fa', flexShrink: 0 }} />
-                     <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: '9px', color: 'var(--ei-text-muted)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '2px' }}>Carpeta de Origen</p>
-                        <p style={{ fontSize: '0.75rem', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                           {project?.root_folder || 'No seleccionada'}
-                        </p>
-                     </div>
+                  <p style={{ fontSize: '11px', color: 'var(--ei-text-muted)', fontWeight: 600 }}>
+                    Sube documentos para procesarlos con IA. El procesamiento inicia automáticamente al finalizar la subida.
+                  </p>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button 
+                        onClick={() => document.getElementById('folder-upload').click()}
+                        className="btn-primary-ei"
+                        style={{ flex: 1, height: '40px', fontSize: '0.85rem', justifyContent: 'center' }}
+                        disabled={saving}
+                    >
+                        <FolderOpen size={16} /> Subir Carpeta
+                    </button>
+                    <input type="file" id="file-upload-2" multiple hidden onChange={handleUpload} />
+                    <button 
+                        onClick={() => document.getElementById('file-upload-2').click()}
+                        className="btn-secondary-ei"
+                        style={{ flex: 1, height: '40px', fontSize: '0.85rem', justifyContent: 'center' }}
+                        disabled={saving}
+                    >
+                        <Upload size={16} /> Subir Archivos
+                    </button>
                   </div>
-                  <button 
-                     onClick={handleSelectFolder}
-                     style={{ 
-                        background: 'rgba(255,255,255,0.05)', 
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        color: '#fff',
-                        cursor: 'pointer'
-                     }}
-                  >
-                     Cambiar
-                  </button>
                </div>
                
                 <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
@@ -294,13 +257,6 @@ const ProjectDetail = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
-                <button 
-                  onClick={handleStartExtraction}
-                  className="btn-primary-ei" 
-                  style={{ flex: 2, height: '48px', fontSize: '0.9rem', justifyContent: 'center' }}
-                >
-                  <CheckCircle2 size={18} /> Iniciar Extracción Masiva
-                </button>
                 <button 
                   onClick={handleReprocessAll}
                   disabled={saving}

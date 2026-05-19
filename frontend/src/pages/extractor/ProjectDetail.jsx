@@ -49,7 +49,8 @@ const ProjectDetail = () => {
       }
     } catch (err) {
       console.error('Fetch error in ProjectDetail:', err);
-      toast.error('Error al cargar datos del proyecto');
+      const errorDetail = err.response?.data?.detail || err.message;
+      toast.error(`Error al cargar datos del proyecto: ${errorDetail}`);
     } finally {
       setLoading(false);
     }
@@ -72,9 +73,14 @@ const ProjectDetail = () => {
         setProject({ ...project, root_folder: res.data.path });
         setLogs(prev => [...prev, { type: 'info', msg: `Carpeta cambiada a: ${res.data.path}` }]);
         toast.success('Carpeta actualizada');
+      } else if (res.data.error) {
+        console.error('Folder selection backend error:', res.data.error);
+        toast.error(`Error al seleccionar carpeta: ${res.data.message || res.data.error}`);
       }
-    } catch {
-      toast.error('Error al seleccionar carpeta');
+    } catch (err) {
+      console.error('Select folder exception:', err);
+      const errorMsg = err.response?.data?.detail || err.message;
+      toast.error(`Error de conexión al seleccionar carpeta: ${errorMsg}`);
     }
   };
 

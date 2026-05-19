@@ -48,13 +48,21 @@ const ProjectWizard = ({ onClose, onCreated }) => {
     setPickingFolder(true);
     try {
       const res = await api.get('/extractor/utils/select-folder', {
-        timeout: 130000,
+        timeout: 185000,
       });
+      
       if (res.data.path) {
         update('root_folder', res.data.path);
+      } else if (res.data.error === 'timeout') {
+        toast.warning(res.data.message || 'Tiempo de espera agotado');
+      } else if (res.data.message === 'Selección cancelada') {
+        // No hacer nada, el usuario canceló
+      } else if (res.data.error) {
+        toast.error(`Error: ${res.data.error}`);
       }
-    } catch {
-      toast.error('No se pudo abrir el selector de carpetas');
+    } catch (err) {
+      console.error('Folder selection error:', err);
+      toast.error('No se pudo abrir el selector de carpetas. Asegúrese de que el servidor tenga acceso a PowerShell.');
     } finally {
       setPickingFolder(false);
     }

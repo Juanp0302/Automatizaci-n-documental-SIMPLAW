@@ -327,13 +327,16 @@ async def process_project_folder(
     if not project or not project.root_folder:
         raise HTTPException(status_code=404, detail="Project or folder not found")
 
-    # Escanear archivos en la carpeta
+    # Escanear archivos en la carpeta de forma recursiva
     import glob
     files = []
-    extensions = ['*.pdf', '*.jpg', '*.jpeg', '*.png']
-    for ext in extensions:
-        files.extend(glob.glob(os.path.join(project.root_folder, ext)))
-        files.extend(glob.glob(os.path.join(project.root_folder, ext.upper())))
+    # Usar patrones que capturen tanto minúsculas como mayúsculas si es posible, 
+    # o simplemente listar ambos. En Windows glob no suele ser case-sensitive por defecto,
+    # pero para portabilidad es mejor ser explícito o usar un enfoque más robusto.
+    patterns = ['**/*.pdf', '**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.PDF', '**/*.JPG', '**/*.JPEG', '**/*.PNG']
+    for pattern in patterns:
+        full_pattern = os.path.join(project.root_folder, pattern)
+        files.extend(glob.glob(full_pattern, recursive=True))
 
     docs_created = []
     for file_path in files:

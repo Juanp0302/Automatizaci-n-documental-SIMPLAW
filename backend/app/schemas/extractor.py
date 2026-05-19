@@ -25,6 +25,8 @@ class ExtractorProjectUpdate(BaseModel):
     client: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+    root_folder: Optional[str] = None
+    file_mode: Optional[str] = None
     connector_ocr: Optional[str] = None
     connector_llm: Optional[str] = None
     llm_classify_model: Optional[str] = None
@@ -116,22 +118,6 @@ class ExtractedDocument(ExtractedDocumentBase):
     field_values: List[DocumentFieldValue] = []
     model_config = ConfigDict(from_attributes=True)
 
-# --- Rule & Alert ---
-class ExtractionRuleBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    trigger_type: str
-    conditions: str = "[]"
-    logic: str = "AND"
-    action_type: str
-    action_data: str = "{}"
-    severity: str = "info"
-    is_active: bool = True
-
-class ExtractionRule(ExtractionRuleBase):
-    id: int
-    project_id: int
-    model_config = ConfigDict(from_attributes=True)
 
 # --- Rules ---
 class ExtractionRuleBase(BaseModel):

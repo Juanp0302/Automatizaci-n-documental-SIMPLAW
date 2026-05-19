@@ -44,25 +44,21 @@ const ProjectWizard = ({ onClose, onCreated }) => {
     }));
   };
 
-  const handleSelectFolder = async () => {
-    setPickingFolder(true);
-    try {
-      if (!window.showDirectoryPicker) {
-        toast.error('Tu navegador no soporta la selección de carpetas. Usa Chrome, Edge o un navegador basado en Chromium.');
-        return;
-      }
-      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-      update('root_folder', dirHandle.name);
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        // El usuario canceló el diálogo
-        return;
-      }
-      console.error('Folder selection error:', err);
-      toast.error('Error al seleccionar carpeta: ' + err.message);
-    } finally {
-      setPickingFolder(false);
+  const wizardFolderRef = React.useRef(null);
+
+  const handleSelectFolder = () => {
+    if (wizardFolderRef.current) {
+      wizardFolderRef.current.click();
     }
+  };
+
+  const handleWizardFolderSelected = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const folderName = files[0]?.webkitRelativePath?.split('/')[0] || 'Carpeta seleccionada';
+    update('root_folder', folderName);
+    setPickingFolder(false);
+    e.target.value = '';
   };
 
   const handleCreate = async () => {
@@ -184,6 +180,17 @@ const ProjectWizard = ({ onClose, onCreated }) => {
               <p className="text-sm" style={{ color: 'var(--ei-text-secondary)' }}>
                 Selecciona la carpeta raíz donde están los documentos.
               </p>
+
+              {/* Input oculto para selección de carpeta */}
+              <input
+                type="file"
+                ref={wizardFolderRef}
+                hidden
+                webkitdirectory="true"
+                directory="true"
+                multiple
+                onChange={handleWizardFolderSelected}
+              />
 
               <div>
                 <label className="label-ei">Carpeta raíz</label>

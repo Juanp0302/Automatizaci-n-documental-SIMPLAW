@@ -8,6 +8,28 @@ import {
 import { useToast } from '../../context/ToastContext';
 import '../../styles/extractor.css';
 
+const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
+// Helper: recursively collect all files from a directory handle
+async function collectFilesFromHandle(dirHandle, path = '') {
+  const files = [];
+  for await (const [name, handle] of dirHandle.entries()) {
+    const fullPath = path ? `${path}/${name}` : name;
+    if (handle.kind === 'file') {
+      const ext = name.substring(name.lastIndexOf('.')).toLowerCase();
+      if (ALLOWED_EXTENSIONS.includes(ext)) {
+        const file = await handle.getFile();
+        // Preserve relative path info in the file name
+        files.push(new File([file], fullPath, { type: file.type, lastModified: file.lastModified }));
+      }
+    } else if (handle.kind === 'directory') {
+      const subFiles = await collectFilesFromHandle(handle, fullPath);
+      files.push(...subFiles);
+    }
+  }
+  return files;
+}
+
 const ProjectDetail = () => {
   const { id: projectId } = useParams();
   const toast = useToast();
@@ -21,6 +43,9 @@ const ProjectDetail = () => {
   ]);
 
   const [rulesCount, setRulesCount] = useState(0);
+  // Almacena el handle del directorio seleccionado por el usuario
+  const [folderHandle, setFolderHandle] = useState(null);
+  const [folderName, setFolderName] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -67,40 +92,78 @@ const ProjectDetail = () => {
 
   const handleSelectFolder = async () => {
     try {
-      const res = await api.get('/extractor/utils/select-folder');
-      if (res.data.path) {
-        await api.put(`/extractor/projects/${projectId}`, { root_folder: res.data.path });
-        setProject({ ...project, root_folder: res.data.path });
-        setLogs(prev => [...prev, { type: 'info', msg: `Carpeta cambiada a: ${res.data.path}` }]);
-        toast.success('Carpeta actualizada');
-      } else if (res.data.error) {
-        console.error('Folder selection backend error:', res.data.error);
-        toast.error(`Error al seleccionar carpeta: ${res.data.message || res.data.error}`);
+      // Usar la API nativa del navegador para seleccionar carpeta
+      if (!window.showDirectoryPicker) {
+        toast.error('Tu navegador no soporta la selección de carpetas. Usa Chrome, Edge o un navegador basado en Chromium.');
+        return;
       }
+      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+      setFolderHandle(dirHandle);
+      setFolderName(dirHandle.name);
+
+      // Guardar el nombre de la carpeta en el proyecto
+      await api.put(`/extractor/projects/${projectId}`, { root_folder: dirHandle.name });
+      setProject(prev => ({ ...prev, root_folder: dirHandle.name }));
+      setLogs(prev => [...prev, { type: 'info', msg: `Carpeta seleccionada: ${dirHandle.name}` }]);
+      toast.success('Carpeta seleccionada correctamente');
     } catch (err) {
+      if (err.name === 'AbortError') {
+        // El usuario canceló el diálogo, no mostrar error
+        return;
+      }
       console.error('Select folder exception:', err);
-      const errorMsg = err.response?.data?.detail || err.message;
-      toast.error(`Error de conexión al seleccionar carpeta: ${errorMsg}`);
+      toast.error('Error al seleccionar carpeta: ' + err.message);
     }
   };
 
   const handleStartExtraction = async () => {
-    if (!project?.root_folder) return toast.error('Selecciona una carpeta primero');
-    setLogs(prev => [...prev, { type: 'sys', msg: 'Iniciando escaneo masivo...' }]);
+    if (!folderHandle) return toast.error('Selecciona una carpeta primero');
+    
+    setSaving(true);
+    setLogs(prev => [...prev, { type: 'sys', msg: 'Escaneando carpeta seleccionada...' }]);
+    
     try {
-      const res = await api.post(`/extractor/projects/${projectId}/process-folder`);
+      // Leer todos los archivos de la carpeta seleccionada
+      const files = await collectFilesFromHandle(folderHandle);
+      
+      if (files.length === 0) {
+        toast.error('No se encontraron archivos PDF o imágenes en la carpeta seleccionada.');
+        setSaving(false);
+        return;
+      }
+
+      setLogs(prev => [...prev, { type: 'info', msg: `Detectados ${files.length} archivos. Enviando al servidor...` }]);
+
+      // Subir en lotes de 10 para evitar timeout
+      const BATCH_SIZE = 10;
+      let totalUploaded = 0;
+      
+      for (let i = 0; i < files.length; i += BATCH_SIZE) {
+        const batch = files.slice(i, i + BATCH_SIZE);
+        const formData = new FormData();
+        batch.forEach(f => formData.append('files', f));
+        
+        await api.post(`/extractor/projects/${projectId}/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 120000,
+        });
+        totalUploaded += batch.length;
+        setLogs(prev => [...prev.slice(-10), { type: 'info', msg: `Enviados ${totalUploaded}/${files.length} archivos...` }]);
+      }
+
       setLogs(prev => [
         ...prev, 
-        { type: 'info', msg: `Detectados ${res.data.count} archivos nuevos.` },
-        { type: 'ai', msg: 'Motor IA (GPT-4o) iniciado.' }
+        { type: 'info', msg: `${files.length} archivos enviados al motor de extracción.` },
+        { type: 'ai', msg: 'Motor IA iniciado. Procesando documentos...' }
       ]);
-      toast.success('Proceso de extracción iniciado');
-      
-      // Iniciar polling de progreso
+      toast.success(`Extracción iniciada: ${files.length} archivos en cola`);
+      fetchData();
       startPolling();
     } catch (err) {
-      setLogs(prev => [...prev, { type: 'error', msg: 'Fallo al iniciar el motor.' }]);
+      setLogs(prev => [...prev, { type: 'error', msg: 'Error al procesar la carpeta: ' + err.message }]);
       toast.error('Error al iniciar extracción: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setSaving(false);
     }
   };
 

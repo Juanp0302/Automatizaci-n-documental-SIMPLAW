@@ -47,22 +47,19 @@ const ProjectWizard = ({ onClose, onCreated }) => {
   const handleSelectFolder = async () => {
     setPickingFolder(true);
     try {
-      const res = await api.get('/extractor/utils/select-folder', {
-        timeout: 185000,
-      });
-      
-      if (res.data.path) {
-        update('root_folder', res.data.path);
-      } else if (res.data.error === 'timeout') {
-        toast.warning(res.data.message || 'Tiempo de espera agotado');
-      } else if (res.data.message === 'Selección cancelada') {
-        // No hacer nada, el usuario canceló
-      } else if (res.data.error) {
-        toast.error(`Error: ${res.data.error}`);
+      if (!window.showDirectoryPicker) {
+        toast.error('Tu navegador no soporta la selección de carpetas. Usa Chrome, Edge o un navegador basado en Chromium.');
+        return;
       }
+      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+      update('root_folder', dirHandle.name);
     } catch (err) {
+      if (err.name === 'AbortError') {
+        // El usuario canceló el diálogo
+        return;
+      }
       console.error('Folder selection error:', err);
-      toast.error('No se pudo abrir el selector de carpetas. Asegúrese de que el servidor tenga acceso a PowerShell.');
+      toast.error('Error al seleccionar carpeta: ' + err.message);
     } finally {
       setPickingFolder(false);
     }

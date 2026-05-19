@@ -37,10 +37,10 @@ def select_folder(
 
     try:
         import subprocess
-        # Ejecutar PowerShell en un hilo STA (Single Threaded Apartment) para GUIs
-        # Quitamos CREATE_NO_WINDOW temporalmente para asegurar que el proceso tenga contexto de UI
+        # Ejecutar PowerShell usando ruta absoluta para evitar problemas de PATH
+        pwsh_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
         subprocess.Popen(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Sta", "-Command", pwsh_cmd]
+            [pwsh_path, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Sta", "-Command", pwsh_cmd]
         )
 
         # Esperar a que se cree el archivo temporal (timeout de 180s)

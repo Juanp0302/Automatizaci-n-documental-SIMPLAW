@@ -45,8 +45,27 @@ const ProjectWizard = ({ onClose, onCreated }) => {
   };
 
   const handleSelectFolder = async () => {
-    // Ya no se usa la selección de carpeta local
-    toast.info('La subida de carpetas se realiza desde la vista del proyecto una vez creado.');
+    setPickingFolder(true);
+    try {
+      const res = await api.get('/extractor/utils/select-folder', {
+        timeout: 185000,
+      });
+      
+      if (res.data.path) {
+        update('root_folder', res.data.path);
+      } else if (res.data.error === 'timeout') {
+        toast.warning(res.data.message || 'Tiempo de espera agotado');
+      } else if (res.data.message === 'Selección cancelada') {
+        // No hacer nada, el usuario canceló
+      } else if (res.data.error) {
+        toast.error(`Error: ${res.data.error}`);
+      }
+    } catch (err) {
+      console.error('Folder selection error:', err);
+      toast.error('No se pudo abrir el selector de carpetas. Asegúrese de que el servidor tenga acceso a PowerShell.');
+    } finally {
+      setPickingFolder(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -169,11 +188,19 @@ const ProjectWizard = ({ onClose, onCreated }) => {
                 Selecciona la carpeta raíz donde están los documentos.
               </p>
 
-              <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 mb-4">
-                <p className="text-sm text-blue-400">
-                  <FolderOpen size={16} className="inline mr-2" />
-                  Podrás subir tus carpetas o archivos directamente desde tu navegador una vez creado el proyecto.
-                </p>
+              <div>
+                <label className="label-ei">Carpeta raíz</label>
+                <div className="flex gap-2">
+                  <input className="input-ei flex-1" placeholder="Selecciona una carpeta..."
+                         value={data.root_folder} readOnly />
+                  <button type="button" onClick={handleSelectFolder} disabled={pickingFolder}
+                    className="btn-secondary-ei flex-shrink-0">
+                    {pickingFolder
+                      ? <div className="w-4 h-4 border-2 border-blue-400/20 border-t-blue-400 rounded-full animate-spin" />
+                      : <><FolderOpen size={15} /> Explorar</>
+                    }
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -218,6 +245,7 @@ const ProjectWizard = ({ onClose, onCreated }) => {
               <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'var(--ei-bg-tertiary)' }}>
                 <SummaryRow label="Nombre"    value={data.name} />
                 {data.client && <SummaryRow label="Cliente" value={data.client} />}
+                {data.root_folder && <SummaryRow label="Carpeta" value={data.root_folder} />}
                 <SummaryRow label="Modo"      value={FILE_MODES.find(m => m.value === data.file_mode)?.label || data.file_mode} />
                 <SummaryRow label="Motor IA"  value={data.connector_llm.toUpperCase()} />
                 <SummaryRow label="Umbral"    value={`${Math.round(data.confidence_threshold * 100)}%`} />

@@ -115,8 +115,8 @@ const ProjectDetail = () => {
     setLogs(prev => [...prev, { type: 'sys', msg: `Iniciando envío de ${selectedFiles.length} archivos...` }]);
     
     try {
-      // Subir en lotes de 10 para evitar timeout
-      const BATCH_SIZE = 10;
+      // Subir en lotes de 5 para evitar límite de tamaño
+      const BATCH_SIZE = 5;
       let totalUploaded = 0;
       
       for (let i = 0; i < selectedFiles.length; i += BATCH_SIZE) {

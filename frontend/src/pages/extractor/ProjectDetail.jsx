@@ -112,41 +112,61 @@ const ProjectDetail = () => {
     if (selectedFiles.length === 0) return toast.error('Selecciona una carpeta primero');
     
     setSaving(true);
-    setLogs(prev => [...prev, { type: 'sys', msg: `Iniciando envío de ${selectedFiles.length} archivos...` }]);
+    setLogs(prev => [...prev, { type: 'sys', msg: `Iniciando envío de ${selectedFiles.length} archivos (uno a uno)...` }]);
     
-    try {
-      // Subir de a 2 archivos para evitar timeouts
-      const BATCH_SIZE = 2;
-      let totalUploaded = 0;
-      
-      for (let i = 0; i < selectedFiles.length; i += BATCH_SIZE) {
-        const batch = selectedFiles.slice(i, i + BATCH_SIZE);
-        const formData = new FormData();
-        batch.forEach(f => formData.append('files', f));
-        
-        await api.post(`/extractor/projects/${projectId}/upload`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 300000,
-        });
-        totalUploaded += batch.length;
-        setLogs(prev => [...prev.slice(-10), { type: 'info', msg: `Enviados ${totalUploaded}/${selectedFiles.length} archivos...` }]);
+    let totalUploaded = 0;
+    let totalFailed = 0;
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      let success = false;
+
+      // Reintentar hasta 3 veces por archivo
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const formData = new FormData();
+          formData.append('files', file);
+          
+          await api.post(`/extractor/projects/${projectId}/upload`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 120000,
+          });
+          success = true;
+          break;
+        } catch (err) {
+          if (attempt < 3) {
+            setLogs(prev => [...prev.slice(-15), { type: 'info', msg: `Reintentando ${file.name} (intento ${attempt + 1})...` }]);
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
       }
 
+      if (success) {
+        totalUploaded++;
+      } else {
+        totalFailed++;
+        setLogs(prev => [...prev.slice(-15), { type: 'error', msg: `No se pudo enviar: ${file.name}` }]);
+      }
+
+      setLogs(prev => [...prev.slice(-15), { type: 'info', msg: `Progreso: ${totalUploaded}/${selectedFiles.length} enviados${totalFailed > 0 ? ` (${totalFailed} fallidos)` : ''}` }]);
+    }
+
+    if (totalUploaded > 0) {
       setLogs(prev => [
         ...prev, 
-        { type: 'info', msg: `${selectedFiles.length} archivos enviados al motor.` },
+        { type: 'info', msg: `${totalUploaded} archivos enviados al motor.${totalFailed > 0 ? ` ${totalFailed} fallaron.` : ''}` },
         { type: 'ai', msg: 'Motor IA iniciado. Procesando documentos...' }
       ]);
-      toast.success(`Extracción iniciada: ${selectedFiles.length} archivos en cola`);
+      toast.success(`Extracción iniciada: ${totalUploaded} archivos en cola`);
       setSelectedFiles([]);
       fetchData();
       startPolling();
-    } catch (err) {
-      setLogs(prev => [...prev, { type: 'error', msg: 'Error: ' + err.message }]);
-      toast.error('Error al iniciar extracción: ' + (err.response?.data?.detail || err.message));
-    } finally {
-      setSaving(false);
+    } else {
+      setLogs(prev => [...prev, { type: 'error', msg: 'No se pudo enviar ningún archivo. Verifica tu conexión.' }]);
+      toast.error('Error: no se pudo enviar ningún archivo');
     }
+
+    setSaving(false);
   };
 
   const startPolling = () => {

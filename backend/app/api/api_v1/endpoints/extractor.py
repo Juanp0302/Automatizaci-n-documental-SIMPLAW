@@ -267,7 +267,17 @@ async def upload_documents(
     os.makedirs(upload_dir, exist_ok=True)
 
     docs_created = []
+    docs_skipped = []
     for file in files:
+        # Verificar si ya existe un documento con el mismo nombre en este proyecto
+        existing = db.query(ExtractedDocument).filter(
+            ExtractedDocument.project_id == id,
+            ExtractedDocument.file_name == file.filename
+        ).first()
+        if existing:
+            docs_skipped.append(file.filename)
+            continue
+
         file_id = str(uuid.uuid4())
         ext = os.path.splitext(file.filename)[1]
         saved_name = f"{file_id}{ext}"
@@ -292,7 +302,10 @@ async def upload_documents(
         # Encolar procesamiento
         background_tasks.add_task(process_document_task, deps.SessionLocal, doc.id, id)
 
-    return {"message": f"{len(docs_created)} files uploaded and queued for processing", "ids": [d.id for d in docs_created]}
+    msg = f"{len(docs_created)} archivos subidos y en cola"
+    if docs_skipped:
+        msg += f" ({len(docs_skipped)} duplicados omitidos)"
+    return {"message": msg, "ids": [d.id for d in docs_created], "skipped": len(docs_skipped)}
 
 # --- Results ---
 

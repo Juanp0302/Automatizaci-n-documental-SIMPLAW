@@ -115,8 +115,8 @@ const ProjectDetail = () => {
     setLogs(prev => [...prev, { type: 'sys', msg: `Iniciando envío de ${selectedFiles.length} archivos...` }]);
     
     try {
-      // Subir en lotes de 5 para evitar límite de tamaño
-      const BATCH_SIZE = 5;
+      // Subir de a 2 archivos para evitar timeouts
+      const BATCH_SIZE = 2;
       let totalUploaded = 0;
       
       for (let i = 0; i < selectedFiles.length; i += BATCH_SIZE) {
@@ -126,7 +126,7 @@ const ProjectDetail = () => {
         
         await api.post(`/extractor/projects/${projectId}/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 120000,
+          timeout: 300000,
         });
         totalUploaded += batch.length;
         setLogs(prev => [...prev.slice(-10), { type: 'info', msg: `Enviados ${totalUploaded}/${selectedFiles.length} archivos...` }]);

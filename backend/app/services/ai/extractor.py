@@ -93,16 +93,20 @@ class ExtractorService:
             extracted_items = parsed.get("campos", [])
             results = []
 
-            # Crear un set de campos ya procesados para detectar los que faltan
+            # Crear un set de campos ya procesados para detectar los que faltan (insensible a mayúsculas/minúsculas)
             processed_field_names = set()
 
             for item in extracted_items:
-                # Buscar el campo correspondiente en nuestra lista
-                field = next((f for f in fields if f.name == item.get("name")), None)
+                # Buscar el campo correspondiente de forma case-insensitive
+                item_name = item.get("name")
+                if not item_name:
+                    continue
+                
+                field = next((f for f in fields if f.name.lower() == item_name.lower()), None)
                 if not field:
                     continue
                 
-                processed_field_names.add(field.name)
+                processed_field_names.add(field.name.lower())
                 val = item.get("value")
                 
                 # Si el valor es null/vacío, registrar como "No encontrado"
@@ -126,9 +130,9 @@ class ExtractorService:
                     "source_text": item.get("source")
                 })
             
-            # Agregar campos que el LLM no devolvió en absoluto
+            # Agregar campos que el LLM no devolvió en absoluto (case-insensitive)
             for field in fields:
-                if field.name not in processed_field_names:
+                if field.name.lower() not in processed_field_names:
                     results.append({
                         "field_id": field.id,
                         "field_name": field.name,
